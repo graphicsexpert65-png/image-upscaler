@@ -1,0 +1,6 @@
+{
+  "name": "AI Super-Resolution Image Upscaler",
+  "description": "Browser-based AI image upscaler powered by Real-ESRGAN super-resolution neural networks. Upscale photos and graphics by 2x and 4x with zero server uploads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
