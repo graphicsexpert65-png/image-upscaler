@@ -9,19 +9,63 @@ import { generateSeamlessTiles, determineOptimalTileSize } from './tiler';
 
 // Configure ONNX Runtime environment inside Web Worker
 ort.env.wasm.wasmPaths = '/wasm/';
-// Enable multi-threading based on hardware concurrency while leaving cores for the UI
-const canUseThreads = typeof crossOriginIsolated !== 'undefined'
-  && crossOriginIsolated
-  && typeof SharedArrayBuffer !== 'undefined';
-const threadCount = canUseThreads && typeof navigator !== 'undefined'
-  ? Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 4) / 2)))
+const canMultithread = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+const threadCount = canMultithread
+  ? Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 4) / 2) || 2))
   : 1;
 ort.env.wasm.numThreads = threadCount;
+ort.env.wasm.simd = true;
 
-// Keep model session in worker memory across multiple image uploads
+// Keep model session & buffer in worker memory across multiple image uploads
 let cachedSession: ort.InferenceSession | null = null;
 let cachedModelPath: string | null = null;
 let cachedBackend: InferenceBackend = 'wasm';
+const modelBufferCache = new Map<string, ArrayBuffer>();
+
+const CACHE_NAME = 'realesrgan-model-weights-v1';
+
+async function fetchModelBufferInWorker(modelUrl: string): Promise<ArrayBuffer> {
+  const memCached = modelBufferCache.get(modelUrl);
+  if (memCached) return memCached;
+
+  if (typeof caches !== 'undefined') {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      const matched = await cache.match(modelUrl);
+      if (matched) {
+        const buf = await matched.arrayBuffer();
+        modelBufferCache.set(modelUrl, buf);
+        return buf;
+      }
+    } catch {}
+  }
+
+  const resp = await fetch(modelUrl);
+  if (!resp.ok) {
+    throw new Error(`Failed to load AI model file (${resp.status} ${resp.statusText})`);
+  }
+
+  if (typeof caches !== 'undefined') {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(modelUrl, resp.clone()).catch(() => {});
+    } catch {}
+  }
+
+  const buf = await resp.arrayBuffer();
+  modelBufferCache.set(modelUrl, buf);
+  return buf;
+}
+
+async function warmUpWorkerSession(session: ort.InferenceSession) {
+  try {
+    const inputName = session.inputNames[0] || 'input';
+    const dummyData = new Float32Array(1 * 3 * 16 * 16);
+    const dummyTensor = new ort.Tensor('float32', dummyData, [1, 3, 16, 16]);
+    await session.run({ [inputName]: dummyTensor });
+    (dummyTensor as any).dispose?.();
+  } catch {}
+}
 
 export interface WorkerStartPayload {
   modelFile: string;
@@ -42,16 +86,30 @@ self.addEventListener('message', async (e: MessageEvent) => {
   const { type, payload } = e.data;
 
   if (type === 'PING') {
-    (self as any).postMessage({ type: 'PONG', cachedModel: cachedModelPath });
+    (self as any).postMessage({ type: 'PONG', cachedModel: cachedModelPath, backend: cachedBackend });
     return;
   }
 
   if (type === 'START_UPSCALE') {
     const data = payload as WorkerStartPayload;
-    const startTime = Date.now();
+    const startTime = performance.now();
+    let modelLoadMs = 0;
+    let sessionInitMs = 0;
 
     try {
-      // 1. Session Init or Instant Memory Reuse
+      // Check if main thread WebGPU should be requested:
+      // If the device has WebGPU, but WebGPU is NOT supported in this Web Worker context
+      const workerHasWebGPU = 'gpu' in navigator && !!(navigator as any).gpu;
+      if (data.deviceHasWebGPU && !workerHasWebGPU) {
+        // Return payload buffer back to main thread so it can run WebGPU at maximum hardware speed!
+        (self as any).postMessage(
+          { type: 'NEEDS_MAIN_THREAD_WEBGPU', srcPixels: data.srcPixels.buffer },
+          [data.srcPixels.buffer]
+        );
+        return;
+      }
+
+      // 1. Session Init or Instant In-Memory Reuse (0ms)
       let activeBackend = cachedBackend;
 
       if (!cachedSession || cachedModelPath !== data.modelFile) {
@@ -63,29 +121,30 @@ self.addEventListener('message', async (e: MessageEvent) => {
             currentTile: 0,
             totalTiles: 0,
             message: 'Loading neural network super-resolution weights...',
-            timeElapsedMs: Date.now() - startTime,
+            timeElapsedMs: Math.round(performance.now() - startTime),
             estimatedRemainingMs: 0,
-            activeBackend: 'wasm',
+            activeBackend: data.deviceHasWebGPU && workerHasWebGPU ? 'webgpu' : 'wasm',
           } as ProcessingProgress,
         });
 
-        // Fetch model ArrayBuffer inside worker
-        const resp = await fetch(data.modelFile);
-        if (!resp.ok) {
-          throw new Error(`Failed to load AI model file (${resp.status} ${resp.statusText})`);
-        }
-        const modelBuffer = await resp.arrayBuffer();
+        const loadStart = performance.now();
+        const modelBuffer = await fetchModelBufferInWorker(data.modelFile);
+        modelLoadMs = Math.round(performance.now() - loadStart);
 
+        const initStart = performance.now();
         let session: ort.InferenceSession | null = null;
 
         // Try WebGPU first if supported in worker
-        if (data.deviceHasWebGPU && 'gpu' in navigator && (navigator as any).gpu) {
+        if (data.deviceHasWebGPU && workerHasWebGPU) {
           try {
-            session = await ort.InferenceSession.create(modelBuffer, {
+            session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
               executionProviders: ['webgpu'],
               graphOptimizationLevel: 'all',
+              enableCpuMemArena: true,
+              enableMemPattern: true,
             });
             activeBackend = 'webgpu';
+            await warmUpWorkerSession(session);
           } catch (gpuErr) {
             console.warn('Worker WebGPU provider failed, falling back to WASM SIMD:', gpuErr);
           }
@@ -94,27 +153,31 @@ self.addEventListener('message', async (e: MessageEvent) => {
         // Fallback to WASM SIMD + Multithreading
         if (!session) {
           try {
-            session = await ort.InferenceSession.create(modelBuffer, {
+            session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
               executionProviders: ['wasm'],
               graphOptimizationLevel: 'all',
+              enableCpuMemArena: true,
+              enableMemPattern: true,
             });
             activeBackend = 'wasm';
+            await warmUpWorkerSession(session);
           } catch (wasmErr) {
             console.warn('Local WASM init failed in worker, trying CDN paths:', wasmErr);
             ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/';
-            session = await ort.InferenceSession.create(modelBuffer, {
+            session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
               executionProviders: ['wasm'],
               graphOptimizationLevel: 'all',
             });
             activeBackend = 'wasm';
+            await warmUpWorkerSession(session);
           }
         }
 
+        sessionInitMs = Math.round(performance.now() - initStart);
         cachedSession = session;
         cachedModelPath = data.modelFile;
         cachedBackend = activeBackend;
       } else {
-        // Model was already loaded! Instant reuse
         activeBackend = cachedBackend;
       }
 
@@ -126,7 +189,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
           currentTile: 0,
           totalTiles: 0,
           message: 'Preparing image tiles...',
-          timeElapsedMs: Date.now() - startTime,
+          timeElapsedMs: Math.round(performance.now() - startTime),
           estimatedRemainingMs: 0,
           activeBackend: cachedBackend,
         } as ProcessingProgress,
@@ -145,14 +208,14 @@ self.addEventListener('message', async (e: MessageEvent) => {
         }
       }
 
-      // Optimal tile size: 512px for WebGPU, 256-384px for WASM, or exact dimensions for <=512px images
+      // Optimal tile size: 512px for WebGPU, 256-384px for WASM, or exact dimensions for small images
       const tileSize = determineOptimalTileSize(
         workingW,
         workingH,
         cachedBackend,
         data.deviceMemoryGB
       );
-      const pad = 12;
+      const pad = 8; // 8px padding is optimal for receptive field without wasting tensor area
       const tiles = generateSeamlessTiles(workingW, workingH, tileSize, pad, modelScale);
       const totalTiles = tiles.length;
 
@@ -164,35 +227,54 @@ self.addEventListener('message', async (e: MessageEvent) => {
       const inputName = session.inputNames[0] || 'input';
       const outputName = session.outputNames[0] || 'output';
 
+      // Pre-allocate a single reusable Float32Array to avoid repetitive GC pauses
+      let maxTileW = 0;
+      let maxTileH = 0;
+      for (const t of tiles) {
+        if (t.paddedW > maxTileW) maxTileW = t.paddedW;
+        if (t.paddedH > maxTileH) maxTileH = t.paddedH;
+      }
+      const sharedTileTensorData = new Float32Array(1 * 3 * maxTileH * maxTileW);
+
+      const inferenceStart = performance.now();
+      let tileStitchingMs = 0;
+
       for (let i = 0; i < totalTiles; i++) {
+        (self as any).postMessage({ type: 'HEARTBEAT' });
+
         const tile = tiles[i];
         const pw = tile.paddedW;
         const ph = tile.paddedH;
-
-        // Local input tensor [1, 3, ph, pw] in NCHW format
-        const tileTensorData = new Float32Array(1 * 3 * ph * pw);
         const planeSize = pw * ph;
+        const requiredSize = 3 * planeSize;
+        const tileDataSlice = sharedTileTensorData.subarray(0, requiredSize);
 
         for (let ty = 0; ty < ph; ty++) {
           const sy = tile.paddedY + ty;
+          const rowSrcIdx = sy * workingW;
+          const rowDstIdx = ty * pw;
+
           for (let tx = 0; tx < pw; tx++) {
             const sx = tile.paddedX + tx;
-            const srcIdx = (sy * workingW + sx) * 4;
-            const dstIdx = ty * pw + tx;
+            const srcIdx = (rowSrcIdx + sx) * 4;
+            const dstIdx = rowDstIdx + tx;
 
-            tileTensorData[dstIdx] = srcPixels[srcIdx] / 255.0;
-            tileTensorData[planeSize + dstIdx] = srcPixels[srcIdx + 1] / 255.0;
-            tileTensorData[planeSize * 2 + dstIdx] = srcPixels[srcIdx + 2] / 255.0;
+            tileDataSlice[dstIdx] = srcPixels[srcIdx] / 255.0;
+            tileDataSlice[planeSize + dstIdx] = srcPixels[srcIdx + 1] / 255.0;
+            tileDataSlice[planeSize * 2 + dstIdx] = srcPixels[srcIdx + 2] / 255.0;
           }
         }
 
-        const inputTensor = new ort.Tensor('float32', tileTensorData, [1, 3, ph, pw]);
+        const inputTensor = new ort.Tensor('float32', tileDataSlice, [1, 3, ph, pw]);
         const feeds: Record<string, ort.Tensor> = { [inputName]: inputTensor };
 
         const results = await session.run(feeds);
         const outputTensor = results[outputName];
         const outData = outputTensor.data as Float32Array;
 
+        (inputTensor as any).dispose?.();
+
+        const stitchStart = performance.now();
         const outPaddedW = pw * modelScale;
         const outPlaneSize = outPaddedW * (ph * modelScale);
 
@@ -201,20 +283,18 @@ self.addEventListener('message', async (e: MessageEvent) => {
           const outY = tile.cropY + vy;
           const globalY = tile.destY + vy;
           const origGlobalY = tile.inputY + vy / modelScale;
+          const outRowOffset = outY * outPaddedW;
+          const targetRowOffset = globalY * outW4;
 
           for (let vx = 0; vx < tile.validW; vx++) {
             const outX = tile.cropX + vx;
             const globalX = tile.destX + vx;
-            const outIdx = outY * outPaddedW + outX;
-            const targetPx = (globalY * outW4 + globalX) * 4;
+            const outIdx = outRowOffset + outX;
+            const targetPx = (targetRowOffset + globalX) * 4;
 
-            const r = Math.max(0, Math.min(255, Math.round(outData[outIdx] * 255)));
-            const g = Math.max(0, Math.min(255, Math.round(outData[outPlaneSize + outIdx] * 255)));
-            const b = Math.max(0, Math.min(255, Math.round(outData[outPlaneSize * 2 + outIdx] * 255)));
-
-            outPixels4[targetPx] = r;
-            outPixels4[targetPx + 1] = g;
-            outPixels4[targetPx + 2] = b;
+            outPixels4[targetPx] = Math.max(0, Math.min(255, Math.round(outData[outIdx] * 255)));
+            outPixels4[targetPx + 1] = Math.max(0, Math.min(255, Math.round(outData[outPlaneSize + outIdx] * 255)));
+            outPixels4[targetPx + 2] = Math.max(0, Math.min(255, Math.round(outData[outPlaneSize * 2 + outIdx] * 255)));
 
             if (rawAlpha) {
               const origGlobalX = tile.inputX + vx / modelScale;
@@ -242,13 +322,13 @@ self.addEventListener('message', async (e: MessageEvent) => {
             }
           }
         }
+        tileStitchingMs += Math.round(performance.now() - stitchStart);
 
-        const elapsed = Date.now() - startTime;
+        const elapsed = Math.round(performance.now() - startTime);
         const progressPct = Math.round(20 + ((i + 1) / totalTiles) * 75);
         const msPerTile = elapsed / (i + 1);
         const remainingMs = Math.round((totalTiles - (i + 1)) * msPerTile);
 
-        // Send progress update
         (self as any).postMessage({
           type: 'PROGRESS',
           progress: {
@@ -266,10 +346,9 @@ self.addEventListener('message', async (e: MessageEvent) => {
         });
       }
 
-      // Post-refinement is intentionally deferred until after final resize on the main thread.
-      // This avoids sharpening a much larger temporary 4x buffer for 2x/8x output.
+      const aiInferenceMs = Math.round(performance.now() - inferenceStart - tileStitchingMs);
 
-      // Transfer resulting pixels back to main thread with zero copy
+      // Transfer resulting 4x neural pixels back to main thread with zero copy
       (self as any).postMessage(
         {
           type: 'SUCCESS',
@@ -278,8 +357,14 @@ self.addEventListener('message', async (e: MessageEvent) => {
           outH4,
           targetW,
           targetH,
-          processingTimeMs: Date.now() - startTime,
+          processingTimeMs: Math.round(performance.now() - startTime),
           backendUsed: cachedBackend,
+          timings: {
+            modelLoadMs,
+            sessionInitMs,
+            aiInferenceMs,
+            tileStitchingMs,
+          },
         },
         [outPixels4.buffer]
       );

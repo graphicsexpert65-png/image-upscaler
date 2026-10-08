@@ -12,7 +12,7 @@ import { ProcessingProgress } from './components/ProcessingProgress';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { ResultDetails } from './components/ResultDetails';
 import { DownloadSection } from './components/DownloadSection';
-import { Feedback } from './Feedback';
+import { FeedbackSection } from './components/FeedbackSection';
 import { ErrorAlert } from './components/ErrorAlert';
 import {
   EnhancementMode,
@@ -179,7 +179,7 @@ export default function App() {
                 <BeforeAfterSlider original={imageInfo} result={result} />
                 <ResultDetails original={imageInfo} result={result} />
                 <DownloadSection original={imageInfo} result={result} />
-                <Feedback />
+                <FeedbackSection result={result} device={device} />
               </div>
             )}
           </div>

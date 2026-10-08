@@ -59,7 +59,12 @@ export const ResultDetails: React.FC<ResultDetailsProps> = ({ original, result }
             </div>
             <div className="text-[11px] text-zinc-400 mt-0.5 flex items-center gap-1">
               <Zap className="w-3 h-3 text-amber-400" />
-              Engine: {result.backendUsed.toUpperCase()}
+              <span>Engine: {result.backendUsed.toUpperCase()}</span>
+              {result.timings && (
+                <span className="text-[10px] text-zinc-500 font-mono ml-1">
+                  · AI: {(result.timings.aiInferenceMs / 1000).toFixed(2)}s
+                </span>
+              )}
             </div>
           </div>
         </div>

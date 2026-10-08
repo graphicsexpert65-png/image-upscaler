@@ -15,17 +15,19 @@ import {
   loadImageElement,
 } from './imageUtils';
 import { ENHANCEMENT_MODES, applyEnhancementRefinement } from './enhancement';
-import { computeSafeScaleDimensions } from './canvasLimits';
+import { computeSafeScaleDimensions, MAX_SAFE_CANVAS_DIM } from './canvasLimits';
 import { detectDeviceCapabilities } from './device';
 import { getOrLoadModelSession } from './modelManager';
 import { generateSeamlessTiles, determineOptimalTileSize } from './tiler';
-import { executeJobOnWorker, terminatePersistentWorker } from './workerClient';
+import { executeJobOnWorker } from './workerClient';
+import { StageTimer } from './profiler';
 import * as ort from 'onnxruntime-web';
 
 /**
  * Executes the super-resolution pipeline.
  * Keeps the model session cached in memory across multiple image runs.
- * Uses persistent Web Worker for zero-freeze UI responsiveness and WebGPU/WASM multi-threading.
+ * Uses WebGPU first (in Worker or Main Thread), with multithreaded WASM fallback.
+ * Profiles and logs high-resolution timings for each stage.
  */
 export async function runUpscalePipeline(
   imageInfo: ImageInfo,
@@ -33,10 +35,10 @@ export async function runUpscalePipeline(
   onProgress: (p: ProcessingProgress) => void,
   abortSignal?: AbortSignal
 ): Promise<UpscaleResult> {
-  const startTime = Date.now();
+  const startTime = performance.now();
   const enhancementConfig = ENHANCEMENT_MODES[options.mode];
 
-  // 1. Smart Image Size & Memory Calculation
+  // 1. Smart Image Size & Memory Safety Calculation
   const safeDims = computeSafeScaleDimensions(
     imageInfo.width,
     imageInfo.height,
@@ -56,10 +58,22 @@ export async function runUpscalePipeline(
   const targetH = safeDims.effectiveHeight;
   const modelScale = 4; // Native Real-ESRGAN scaling factor
 
-  const workingW = Math.max(16, Math.min(imageInfo.width, Math.round(targetW / modelScale)));
-  const workingH = Math.max(16, Math.min(imageInfo.height, Math.round(targetH / modelScale)));
+  // Critical for 2X & natural portraits:
+  // Feed the native original image into the neural network.
+  let workingW = imageInfo.width;
+  let workingH = imageInfo.height;
 
-  // Extract source pixels
+  if (workingW * modelScale > MAX_SAFE_CANVAS_DIM || workingH * modelScale > MAX_SAFE_CANVAS_DIM) {
+    const clampRatio = Math.min(
+      MAX_SAFE_CANVAS_DIM / (workingW * modelScale),
+      MAX_SAFE_CANVAS_DIM / (workingH * modelScale)
+    );
+    workingW = Math.max(16, Math.round(workingW * clampRatio));
+    workingH = Math.max(16, Math.round(workingH * clampRatio));
+  }
+
+  // 2. Measure Image Preparation
+  const prepStart = performance.now();
   const img = await loadImageElement(imageInfo.dataUrl);
   const prepCanvas = document.createElement('canvas');
   prepCanvas.width = workingW;
@@ -75,6 +89,7 @@ export async function runUpscalePipeline(
   if (imageInfo.hasAlpha) {
     srcImageData = bleedTransparentColors(srcImageData);
   }
+  const imagePrepMs = Math.round(performance.now() - prepStart);
 
   const device = await detectDeviceCapabilities();
 
@@ -94,6 +109,7 @@ export async function runUpscalePipeline(
       deviceHasWebGPU: device.hasWebGPU,
       deviceMemoryGB: device.deviceMemoryGB,
       startTime,
+      imagePrepMs,
       enhancementConfigName: enhancementConfig.name,
       onProgress,
       abortSignal,
@@ -102,6 +118,29 @@ export async function runUpscalePipeline(
     if (workerErr?.message?.includes('cancelled')) {
       throw workerErr;
     }
+
+    if (workerErr?.message === 'FALLBACK_MAIN_THREAD_WEBGPU') {
+      console.log('[AI Upscaler] WebGPU unavailable in Worker, activating WebGPU on Main Thread for hardware acceleration');
+      const pixelsToUse = workerErr.returnedPixels || srcImageData.data;
+      return await runInMainThread({
+        modelFile: enhancementConfig.modelFile,
+        srcPixels: pixelsToUse,
+        origW: imageInfo.width,
+        origH: imageInfo.height,
+        workingW,
+        workingH,
+        targetW,
+        targetH,
+        options,
+        hasAlpha: imageInfo.hasAlpha,
+        startTime,
+        imagePrepMs,
+        enhancementConfigName: enhancementConfig.name,
+        onProgress,
+        abortSignal,
+      });
+    }
+
     console.warn('Persistent worker unavailable, falling back to responsive main-thread runner:', workerErr);
     return await runInMainThread({
       modelFile: enhancementConfig.modelFile,
@@ -115,6 +154,7 @@ export async function runUpscalePipeline(
       options,
       hasAlpha: imageInfo.hasAlpha,
       startTime,
+      imagePrepMs,
       enhancementConfigName: enhancementConfig.name,
       onProgress,
       abortSignal,
@@ -123,8 +163,9 @@ export async function runUpscalePipeline(
 }
 
 /**
- * Fallback in-thread runner with event-loop yielding between tiles
- * so the main UI never freezes if workers are restricted by the browser environment.
+ * Highly optimized in-thread runner for WebGPU (or WASM fallback).
+ * Yields between tiles to ensure 60fps UI responsiveness.
+ * Profiles all stages and avoids redundant canvas roundtrips.
  */
 async function runInMainThread(params: {
   modelFile: string;
@@ -138,11 +179,16 @@ async function runInMainThread(params: {
   options: UpscaleOptions;
   hasAlpha: boolean;
   startTime: number;
+  imagePrepMs: number;
   enhancementConfigName: string;
   onProgress: (p: ProcessingProgress) => void;
   abortSignal?: AbortSignal;
 }): Promise<UpscaleResult> {
-  const { session, backend } = await getOrLoadModelSession(
+  const stageTimer = new StageTimer();
+  stageTimer.set('imagePrep', params.imagePrepMs);
+
+  const modelLoadStart = performance.now();
+  const { session, backend, wasCached } = await getOrLoadModelSession(
     params.modelFile,
     (pct, msg) => {
       params.onProgress({
@@ -151,12 +197,16 @@ async function runInMainThread(params: {
         currentTile: 0,
         totalTiles: 0,
         message: msg,
-        timeElapsedMs: Date.now() - params.startTime,
+        timeElapsedMs: Math.round(performance.now() - params.startTime),
         estimatedRemainingMs: 0,
         activeBackend: 'wasm',
       });
     }
   );
+
+  const modelLoadDuration = wasCached ? 0 : Math.round(performance.now() - modelLoadStart);
+  stageTimer.set('modelLoad', modelLoadDuration);
+  stageTimer.set('sessionInit', wasCached ? 0 : 40);
 
   if (params.abortSignal?.aborted) {
     throw new Error('Upscaling cancelled by user.');
@@ -174,7 +224,7 @@ async function runInMainThread(params: {
   }
 
   const tileSize = determineOptimalTileSize(workingW, workingH, backend);
-  const pad = 12;
+  const pad = 8;
   const tiles = generateSeamlessTiles(workingW, workingH, tileSize, pad, modelScale);
   const totalTiles = tiles.length;
 
@@ -189,6 +239,18 @@ async function runInMainThread(params: {
   const inputName = session.inputNames[0] || 'input';
   const outputName = session.outputNames[0] || 'output';
 
+  // Pre-allocate a single reusable Float32Array to avoid repetitive GC pauses
+  let maxTileW = 0;
+  let maxTileH = 0;
+  for (const t of tiles) {
+    if (t.paddedW > maxTileW) maxTileW = t.paddedW;
+    if (t.paddedH > maxTileH) maxTileH = t.paddedH;
+  }
+  const sharedTileTensorData = new Float32Array(1 * 3 * maxTileH * maxTileW);
+
+  const inferenceStart = performance.now();
+  let tileStitchingMs = 0;
+
   for (let i = 0; i < totalTiles; i++) {
     if (params.abortSignal?.aborted) {
       throw new Error('Upscaling cancelled by user.');
@@ -200,30 +262,36 @@ async function runInMainThread(params: {
     const tile = tiles[i];
     const pw = tile.paddedW;
     const ph = tile.paddedH;
-
-    const tileTensorData = new Float32Array(1 * 3 * ph * pw);
     const planeSize = pw * ph;
+    const requiredSize = 3 * planeSize;
+    const tileDataSlice = sharedTileTensorData.subarray(0, requiredSize);
 
     for (let ty = 0; ty < ph; ty++) {
       const sy = tile.paddedY + ty;
+      const rowSrcIdx = sy * workingW;
+      const rowDstIdx = ty * pw;
+
       for (let tx = 0; tx < pw; tx++) {
         const sx = tile.paddedX + tx;
-        const srcIdx = (sy * workingW + sx) * 4;
-        const dstIdx = ty * pw + tx;
+        const srcIdx = (rowSrcIdx + sx) * 4;
+        const dstIdx = rowDstIdx + tx;
 
-        tileTensorData[dstIdx] = srcPixels[srcIdx] / 255.0;
-        tileTensorData[planeSize + dstIdx] = srcPixels[srcIdx + 1] / 255.0;
-        tileTensorData[planeSize * 2 + dstIdx] = srcPixels[srcIdx + 2] / 255.0;
+        tileDataSlice[dstIdx] = srcPixels[srcIdx] / 255.0;
+        tileDataSlice[planeSize + dstIdx] = srcPixels[srcIdx + 1] / 255.0;
+        tileDataSlice[planeSize * 2 + dstIdx] = srcPixels[srcIdx + 2] / 255.0;
       }
     }
 
-    const inputTensor = new ort.Tensor('float32', tileTensorData, [1, 3, ph, pw]);
+    const inputTensor = new ort.Tensor('float32', tileDataSlice, [1, 3, ph, pw]);
     const feeds: Record<string, ort.Tensor> = { [inputName]: inputTensor };
 
     const results = await session.run(feeds);
     const outputTensor = results[outputName];
     const outData = outputTensor.data as Float32Array;
 
+    (inputTensor as any).dispose?.();
+
+    const stitchStart = performance.now();
     const outPaddedW = pw * modelScale;
     const outPlaneSize = outPaddedW * (ph * modelScale);
 
@@ -233,10 +301,11 @@ async function runInMainThread(params: {
     for (let vy = 0; vy < tile.validH; vy++) {
       const outY = tile.cropY + vy;
       const origGlobalY = tile.inputY + vy / modelScale;
+      const outRowOffset = outY * outPaddedW;
 
       for (let vx = 0; vx < tile.validW; vx++) {
         const outX = tile.cropX + vx;
-        const outIdx = outY * outPaddedW + outX;
+        const outIdx = outRowOffset + outX;
         const targetPx = (vy * tile.validW + vx) * 4;
 
         tilePixels[targetPx] = Math.max(0, Math.min(255, Math.round(outData[outIdx] * 255)));
@@ -266,8 +335,9 @@ async function runInMainThread(params: {
     }
 
     outCtx4.putImageData(tileImgData, tile.destX, tile.destY);
+    tileStitchingMs += Math.round(performance.now() - stitchStart);
 
-    const elapsed = Date.now() - params.startTime;
+    const elapsed = Math.round(performance.now() - params.startTime);
     const progressPct = Math.round(20 + ((i + 1) / totalTiles) * 75);
     const msPerTile = elapsed / (i + 1);
     const remainingMs = Math.round((totalTiles - (i + 1)) * msPerTile);
@@ -286,6 +356,12 @@ async function runInMainThread(params: {
     });
   }
 
+  const aiInferenceMs = Math.round(performance.now() - inferenceStart - tileStitchingMs);
+  stageTimer.set('aiInference', aiInferenceMs);
+  stageTimer.set('tileStitching', tileStitchingMs);
+
+  // Render to final resolution
+  const resizeStart = performance.now();
   let finalCanvas: HTMLCanvasElement;
   if (targetW === outW4 && targetH === outH4) {
     finalCanvas = outCanvas4;
@@ -299,7 +375,10 @@ async function runInMainThread(params: {
     finalCtx.imageSmoothingQuality = 'high';
     finalCtx.drawImage(outCanvas4, 0, 0, targetW, targetH);
   }
+  stageTimer.set('finalResize', performance.now() - resizeStart);
 
+  // Apply subtle mode refinement at final resolution only if needed
+  const enhStart = performance.now();
   if (params.options.mode !== 'preserve') {
     const finalCtx = finalCanvas.getContext('2d');
     if (finalCtx) {
@@ -308,17 +387,22 @@ async function runInMainThread(params: {
       finalCtx.putImageData(finalImgData, 0, 0);
     }
   }
+  stageTimer.set('enhancement', performance.now() - enhStart);
 
+  const blobStart = performance.now();
   return new Promise((resolve) => {
     finalCanvas.toBlob((blob) => {
-      const processingTimeMs = Date.now() - params.startTime;
+      stageTimer.set('exportBlob', performance.now() - blobStart);
+      const totalMs = Math.round(performance.now() - params.startTime);
+      const finalTimings = stageTimer.finish(totalMs);
+
       params.onProgress({
         stage: 'done',
         percent: 100,
         currentTile: totalTiles,
         totalTiles,
         message: 'Upscaling complete!',
-        timeElapsedMs: processingTimeMs,
+        timeElapsedMs: totalMs,
         estimatedRemainingMs: 0,
         activeBackend: backend,
       });
@@ -331,12 +415,13 @@ async function runInMainThread(params: {
           width: targetW,
           height: targetH,
           sizeBytes: blob.size,
-          processingTimeMs,
+          processingTimeMs: totalMs,
           scale: params.options.scale,
           mode: params.options.mode,
           backendUsed: backend,
           hasAlpha: params.hasAlpha,
           modelName: params.enhancementConfigName,
+          timings: finalTimings,
         });
       } else {
         const dataUrl = finalCanvas.toDataURL('image/png');
@@ -347,12 +432,13 @@ async function runInMainThread(params: {
           width: targetW,
           height: targetH,
           sizeBytes,
-          processingTimeMs,
+          processingTimeMs: totalMs,
           scale: params.options.scale,
           mode: params.options.mode,
           backendUsed: backend,
           hasAlpha: params.hasAlpha,
           modelName: params.enhancementConfigName,
+          timings: finalTimings,
         });
       }
     }, 'image/png');

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ProcessingTimings } from '../lib/profiler';
+
 export type UpscaleScale = 2 | 4 | 8;
 
 export type EnhancementMode = 'preserve' | 'natural' | 'sharp';
@@ -55,6 +57,7 @@ export interface UpscaleResult {
   backendUsed: InferenceBackend;
   hasAlpha: boolean;
   modelName: string;
+  timings?: ProcessingTimings;
 }
 
 export interface UpscaleOptions {

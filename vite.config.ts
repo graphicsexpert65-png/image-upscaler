@@ -11,6 +11,27 @@ export default defineConfig(() => {
         name: 'wasm-static-server',
         configureServer(server) {
           server.middlewares.use((req, res, next) => {
+            if (req.url && req.url.startsWith('/api/feedback') && req.method === 'POST') {
+              let bodyStr = '';
+              req.on('data', (chunk: any) => {
+                bodyStr += chunk;
+              });
+              req.on('end', () => {
+                try {
+                  const body = JSON.parse(bodyStr || '{}');
+                  const stars = '★'.repeat(body.rating || 0) + '☆'.repeat(Math.max(0, 5 - (body.rating || 0)));
+                  console.log('[DEV USER FEEDBACK RECEIVED]', stars, body);
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ success: true, message: 'Thank you for your feedback!' }));
+                } catch {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+                }
+              });
+              return;
+            }
+
             if (req.url && req.url.startsWith('/wasm/')) {
               const cleanUrl = req.url.split('?')[0];
               const filePath = path.resolve(import.meta.dirname, 'public' + cleanUrl);

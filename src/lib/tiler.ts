@@ -73,7 +73,7 @@ export function generateSeamlessTiles(
   imgWidth: number,
   imgHeight: number,
   tileSize: number = 512,
-  pad: number = 12,
+  pad: number = 8,
   scale: number = 4
 ): SeamlessTile[] {
   // Fast path: if the image fits within a single tile, return 1 tile covering the entire image

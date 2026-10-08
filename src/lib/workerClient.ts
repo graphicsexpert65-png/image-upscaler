@@ -6,12 +6,14 @@
 import { ProcessingProgress, UpscaleOptions, UpscaleResult } from '../types';
 import { WorkerStartPayload } from './upscaleWorker';
 import { applyEnhancementRefinement } from './enhancement';
+import { StageTimer } from './profiler';
 
 let persistentWorker: Worker | null = null;
 let isWorkerRunningJob = false;
 let currentJobReject: ((reason?: any) => void) | null = null;
 
-const STUCK_TIMEOUT_MS = 180000; // Allow slow CPU/WASM tiles to finish without false timeouts
+// Adaptive watchdog timeout (120s of complete silence without progress or heartbeats)
+const STUCK_TIMEOUT_MS = 120000;
 
 /**
  * Gets or lazily creates the persistent Web Worker.
@@ -55,6 +57,7 @@ export interface RunWorkerJobParams {
   deviceHasWebGPU: boolean;
   deviceMemoryGB: number | null;
   startTime: number;
+  imagePrepMs: number;
   enhancementConfigName: string;
   onProgress: (p: ProcessingProgress) => void;
   abortSignal?: AbortSignal;
@@ -62,6 +65,8 @@ export interface RunWorkerJobParams {
 
 /**
  * Executes a job on the persistent worker without tearing it down upon completion.
+ * Transfers ArrayBuffers with zero-copy, eliminates redundant canvas conversions,
+ * and profiles every stage.
  */
 export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleResult> {
   return new Promise((resolve, reject) => {
@@ -116,6 +121,22 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
       resetWatchdog();
       const { type } = e.data;
 
+      if (type === 'HEARTBEAT') {
+        return;
+      }
+
+      if (type === 'NEEDS_MAIN_THREAD_WEBGPU') {
+        clearWatchdog();
+        isWorkerRunningJob = false;
+        currentJobReject = null;
+        // Signal to inference.ts that main thread WebGPU should be executed directly
+        const returnedPixels = new Uint8ClampedArray(e.data.srcPixels);
+        const err = new Error('FALLBACK_MAIN_THREAD_WEBGPU');
+        (err as any).returnedPixels = returnedPixels;
+        reject(err);
+        return;
+      }
+
       if (type === 'PROGRESS') {
         params.onProgress(e.data.progress);
       } else if (type === 'SUCCESS') {
@@ -123,9 +144,15 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         isWorkerRunningJob = false;
         currentJobReject = null;
 
-        const { pixels, outW4, outH4, targetW, targetH, backendUsed } = e.data;
+        const { pixels, outW4, outH4, targetW, targetH, backendUsed, timings: workerTimings } = e.data;
+        const stageTimer = new StageTimer();
+        stageTimer.set('imagePrep', params.imagePrepMs);
+        stageTimer.set('modelLoad', workerTimings?.modelLoadMs || 0);
+        stageTimer.set('sessionInit', workerTimings?.sessionInitMs || 0);
+        stageTimer.set('aiInference', workerTimings?.aiInferenceMs || 0);
+        stageTimer.set('tileStitching', workerTimings?.tileStitchingMs || 0);
 
-        // Render to canvas to create persistent result
+        // 1. Reconstruct 4x neural canvas from tile outputs
         const canvas4x = document.createElement('canvas');
         canvas4x.width = outW4;
         canvas4x.height = outH4;
@@ -138,6 +165,8 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         const imgData = new ImageData(new Uint8ClampedArray(pixels), outW4, outH4);
         ctx4x.putImageData(imgData, 0, 0);
 
+        // 2. Render to final target resolution (2X, 4X, or 8X)
+        const resizeStart = performance.now();
         let finalCanvas: HTMLCanvasElement;
         if (targetW === outW4 && targetH === outH4) {
           finalCanvas = canvas4x;
@@ -154,9 +183,11 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
           finalCtx.imageSmoothingQuality = 'high';
           finalCtx.drawImage(canvas4x, 0, 0, targetW, targetH);
         }
+        stageTimer.set('finalResize', performance.now() - resizeStart);
 
-        // Apply optional refinement only at the final requested resolution.
-        // This is faster and keeps worker/main-thread output visually consistent.
+        // 3. Apply subtle mode refinement directly at final resolution
+        // (Preserve Original: 0 modification; Natural: subtle 0.08 refinement)
+        const enhStart = performance.now();
         if (params.options.mode !== 'preserve') {
           const finalCtx = finalCanvas.getContext('2d');
           if (finalCtx) {
@@ -165,16 +196,20 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
             finalCtx.putImageData(finalImgData, 0, 0);
           }
         }
+        stageTimer.set('enhancement', performance.now() - enhStart);
 
-        // Convert canvas to Blob & persistent object URL
+        // 4. Convert canvas to Blob & persistent object URL
+        const blobStart = performance.now();
         finalCanvas.toBlob(
           (blob) => {
+            stageTimer.set('exportBlob', performance.now() - blobStart);
+            const totalMs = Math.round(performance.now() - params.startTime);
+            const finalTimings = stageTimer.finish(totalMs);
+
             if (!blob) {
-              // Fallback to dataURL if toBlob fails
               const dataUrl = finalCanvas.toDataURL('image/png');
               const head = 'data:image/png;base64,';
               const sizeBytes = Math.round(((dataUrl.length - head.length) * 3) / 4);
-              const processingTimeMs = Date.now() - params.startTime;
 
               params.onProgress({
                 stage: 'done',
@@ -182,7 +217,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
                 currentTile: 1,
                 totalTiles: 1,
                 message: 'Upscaling complete!',
-                timeElapsedMs: processingTimeMs,
+                timeElapsedMs: totalMs,
                 estimatedRemainingMs: 0,
                 activeBackend: backendUsed,
               });
@@ -192,19 +227,19 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
                 width: targetW,
                 height: targetH,
                 sizeBytes,
-                processingTimeMs,
+                processingTimeMs: totalMs,
                 scale: params.options.scale,
                 mode: params.options.mode,
                 backendUsed,
                 hasAlpha: params.hasAlpha,
                 modelName: params.enhancementConfigName,
+                timings: finalTimings,
               });
               return;
             }
 
-            // Create persistent Object URL that will NOT be auto-revoked
+            // Create persistent Object URL that stays available in memory
             const persistentUrl = URL.createObjectURL(blob);
-            const processingTimeMs = Date.now() - params.startTime;
 
             params.onProgress({
               stage: 'done',
@@ -212,7 +247,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
               currentTile: 1,
               totalTiles: 1,
               message: 'Upscaling complete!',
-              timeElapsedMs: processingTimeMs,
+              timeElapsedMs: totalMs,
               estimatedRemainingMs: 0,
               activeBackend: backendUsed,
             });
@@ -223,12 +258,13 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
               width: targetW,
               height: targetH,
               sizeBytes: blob.size,
-              processingTimeMs,
+              processingTimeMs: totalMs,
               scale: params.options.scale,
               mode: params.options.mode,
               backendUsed,
               hasAlpha: params.hasAlpha,
               modelName: params.enhancementConfigName,
+              timings: finalTimings,
             });
           },
           'image/png'
@@ -266,6 +302,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
       deviceMemoryGB: params.deviceMemoryGB,
     };
 
-    worker.postMessage({ type: 'START_UPSCALE', payload });
+    // Zero-copy transfer of srcPixels ArrayBuffer to the worker
+    worker.postMessage({ type: 'START_UPSCALE', payload }, [params.srcPixels.buffer]);
   });
 }

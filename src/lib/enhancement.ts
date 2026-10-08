@@ -17,31 +17,31 @@ export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
   preserve: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Preserve Original',
-    description: 'High-fidelity natural restoration. Accurately preserves skin tones, soft lighting, and original colors without oversharpening.',
+    description: 'Maximum fidelity to original. Zero artificial sharpening, beautification, or contrast alteration. Preserves natural skin texture, soft lighting, and authentic details.',
     sharpness: 0.0,
     contrastBalance: 1.0,
   },
   natural: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Natural Detail',
-    description: 'Enhanced texture and micro-contrast synthesis. Ideal for photos, fabric, foliage, architecture, and realistic scenes.',
-    sharpness: 0.10,
+    description: 'Subtle photographic enhancement. Micro-contrast is kept gentle to preserve authentic facial identity, skin tone, and natural lines without halos or artificial sharpness.',
+    sharpness: 0.08,
     contrastBalance: 1.0,
   },
   sharp: {
-    modelFile: '/models/realesr-anime-x4.onnx',
+    modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Sharp Detail',
-    description: 'Trained on sharp edges and clean contours. Eliminates blur and restores crisp lines for illustrations, logos, graphics, and text.',
-    sharpness: 0.65,
-    contrastBalance: 1.1,
+    description: 'Clean edge definition for architectural textures, product lines, and typography without cartoon-like or waxy artifacts.',
+    sharpness: 0.18,
+    contrastBalance: 1.01,
   },
 };
 
 /**
  * Applies subtle, high-grade post-reconstruction refinement according to selected mode.
- * - 'preserve': Leaves pixel tensor pristine.
- * - 'natural': Applies subtle unsharp mask to mid-frequencies.
- * - 'sharp': Sharpens high-contrast edge gradients without color distortion.
+ * - 'preserve': Leaves pixel tensor 100% pristine.
+ * - 'natural': Applies very subtle high-frequency definition with strict halo clamping.
+ * - 'sharp': Clean edge definition without unnatural facial reconstruction.
  */
 export function applyEnhancementRefinement(
   data: Uint8ClampedArray,
@@ -58,9 +58,9 @@ export function applyEnhancementRefinement(
 
   const copy = new Uint8ClampedArray(data);
 
-  // 3x3 unsharp mask kernel: [0, -1, 0, -1, 4, -1, 0, -1, 0]
-  // applied with weight = sharpness * 0.5
-  const weight = sharpness * 0.35;
+  // Subtle unsharp mask kernel: [0, -1, 0, -1, 4, -1, 0, -1, 0]
+  // Weight is conservative to prevent plastic/waxy appearance
+  const weight = sharpness * 0.25;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
@@ -74,8 +74,8 @@ export function applyEnhancementRefinement(
         const right = copy[(y * width + (x + 1)) * 4 + c];
 
         const laplacian = 4 * center - top - bottom - left - right;
-        // Limit sharpening to prevent halos
-        const delta = Math.max(-12, Math.min(12, laplacian * weight));
+        // Strict delta limit (max ±8) prevents edge halos, ringing, and artificial pores
+        const delta = Math.max(-8, Math.min(8, laplacian * weight));
         data[idx + c] = Math.max(0, Math.min(255, Math.round(center + delta)));
       }
     }
