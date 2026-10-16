@@ -9,7 +9,7 @@ import { detectDeviceCapabilities } from './device';
 
 // Configure ONNX Runtime environment
 if (typeof window !== 'undefined') {
-  ort.env.wasm.wasmPaths = '/wasm/';
+  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
   // Use multithreading if crossOriginIsolated, otherwise 1 thread to prevent errors
   const canMultithread = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
   ort.env.wasm.numThreads = canMultithread
@@ -169,7 +169,7 @@ export async function getOrLoadModelSession(
     console.warn('Local WASM init encountered issue, trying CDN fallback:', localWasmError);
     // 3. Try WASM with CDN distribution paths
     try {
-      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/';
+      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
       const session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'all',

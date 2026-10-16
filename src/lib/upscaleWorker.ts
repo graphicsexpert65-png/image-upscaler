@@ -8,7 +8,7 @@ import { InferenceBackend, ProcessingProgress, UpscaleOptions } from '../types';
 import { generateSeamlessTiles, determineOptimalTileSize } from './tiler';
 
 // Configure ONNX Runtime environment inside Web Worker
-ort.env.wasm.wasmPaths = '/wasm/';
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
 const canMultithread = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
 const threadCount = canMultithread
   ? Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 4) / 2) || 2))
@@ -163,7 +163,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
             await warmUpWorkerSession(session);
           } catch (wasmErr) {
             console.warn('Local WASM init failed in worker, trying CDN paths:', wasmErr);
-            ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/';
+            ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/';
             session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
               executionProviders: ['wasm'],
               graphOptimizationLevel: 'all',
