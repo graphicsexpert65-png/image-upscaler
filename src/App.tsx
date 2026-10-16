@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AdBanner } from './components/AdBanner';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { ImageUploader } from './components/ImageUploader';
@@ -185,6 +187,7 @@ export default function App() {
           </div>
         )}
       </main>
+      <AdBanner />
     </div>
   );
 }
