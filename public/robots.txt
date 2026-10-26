@@ -1,0 +1,5 @@
+
+User-agent: *
+Allow: /
+
+Sitemap: https://image-upscaler-74z.pages.dev/sitemap.xml
