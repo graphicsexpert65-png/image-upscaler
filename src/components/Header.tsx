@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -21,10 +22,10 @@ export const Header: React.FC<HeaderProps> = ({ device }) => {
           </div>
           <div>
             <h1 className="text-base font-semibold text-zinc-100 tracking-tight leading-none">
-              Real-ESRGAN Super-Resolution
+              Free AI Image Upscaler
             </h1>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Client-side neural network upscaling · 100% private & local
+              Upscale Images 2x &amp; 4x Online – Free AI Photo Enhancer
             </p>
           </div>
         </div>
@@ -41,12 +42,16 @@ export const Header: React.FC<HeaderProps> = ({ device }) => {
             {device?.hasWebGPU ? (
               <>
                 <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
-                <span className="font-medium text-amber-300">GPU acceleration enabled</span>
+                <span className="font-medium text-amber-300">
+                  GPU acceleration enabled
+                </span>
               </>
             ) : (
               <>
                 <Cpu className="w-3.5 h-3.5 text-sky-400" />
-                <span className="font-medium text-zinc-300">WASM acceleration enabled</span>
+                <span className="font-medium text-zinc-300">
+                  WASM acceleration enabled
+                </span>
               </>
             )}
           </div>

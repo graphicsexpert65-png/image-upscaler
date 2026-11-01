@@ -1,9 +1,11 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { AdBanner } from './components/AdBanner';
+import { SEOContent } from './components/SEOContent';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
@@ -187,6 +189,10 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* SEO content below the image upscaler */}
+      <SEOContent />
+
       <AdBanner />
     </div>
   );
