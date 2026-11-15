@@ -9,9 +9,9 @@ interface FeedbackData {
   comment?: string;
   scale?: string;
   mode?: string;
-  processing_time_ms?: number;
-  backend_used?: string;
-  device_category?: string;
+  processingTimeMs?: number;
+  backendUsed?: string;
+  deviceCategory?: string;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
@@ -47,15 +47,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       data.comment ?? null,
       data.scale ?? null,
       data.mode ?? null,
-      data.processing_time_ms ?? null,
-      data.backend_used ?? null,
-      data.device_category ?? null,
+      data.processingTimeMs ?? null,
+      data.backendUsed ?? null,
+      data.deviceCategory ?? null,
       new Date().toISOString()
     ).run();
 
     return Response.json({ success: true });
 
   } catch (error) {
+    console.error("Feedback API error:", error);
+
     return Response.json(
       { success: false, error: "Failed to save feedback" },
       { status: 500 }
