@@ -46,7 +46,7 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ result, device
     };
 
     try {
-      const response = await fetch('/api/feedback', {
+      const response = await fetch('/API/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
