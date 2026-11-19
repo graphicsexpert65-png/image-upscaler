@@ -128,10 +128,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col antialiased selection:bg-sky-500 selection:text-zinc-950">
+    <div className="app-shell min-h-screen bg-white text-slate-900 flex flex-col antialiased selection:bg-blue-100 selection:text-slate-950">
       <Header device={device} />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">\n        <section className="app-intro max-w-3xl mx-auto text-center space-y-3 pb-2">\n          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">\n            <span className="h-2 w-2 rounded-full bg-blue-900" /> FREE ONLINE AI PHOTO ENHANCER\n          </span>\n          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-950 leading-tight">Make your images <span className="text-blue-900">clearer and bigger.</span></h2>\n          <p className="max-w-2xl mx-auto text-sm sm:text-base leading-7 text-slate-600">Upload a photo, choose 2×, 4× or 8×, and enhance it with AI. Your image is processed in your browser.</p>\n        </section>
         {/* Error Notification */}
         {error && (
           <ErrorAlert
