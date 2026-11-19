@@ -1,6 +1,6 @@
 {
-  "name": "AI Super-Resolution Image Upscaler",
-  "description": "Browser-based AI image upscaler powered by Real-ESRGAN super-resolution neural networks. Upscale photos and graphics by 2x and 4x with zero server uploads.",
+  "name": "Free AI Image Upscaler",
+  "description": "Free browser-based AI image upscaler using Real-ESRGAN super-resolution. Enlarge JPG, PNG, WebP and BMP images by 2x, 4x or 8x without uploading images to a server.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": ["Browser-based AI image super-resolution", "2x, 4x and 8x image enlargement"]
 }
