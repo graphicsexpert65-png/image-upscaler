@@ -63,3 +63,6 @@
 .app-shell button[class*="text-zinc-100"] { color: #172554 !important; }
 .app-shell .app-intro { margin-bottom: 0.5rem; }
 .app-shell :focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+
+.app-shell button[class*="bg-zinc-800"][class*="text-white"] { color: #172554 !important; }
+.app-shell button[class*="bg-zinc-800"] svg { color: #172554; }
