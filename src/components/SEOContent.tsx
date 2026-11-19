@@ -2,204 +2,118 @@ import React from 'react';
 
 export function SEOContent() {
   return (
-    <section className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 text-zinc-300 space-y-10">
-
+    <section
+      aria-labelledby="image-upscaler-guide"
+      className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 text-zinc-300 space-y-8"
+    >
       <div className="space-y-3">
-        <h2 className="text-2xl font-bold text-white">
-          Free AI Image Upscaler Online – Enhance Images 2x & 4x
+        <h2 id="image-upscaler-guide" className="text-2xl font-bold text-white">
+          Free AI Image Upscaler – Enlarge Images Without Losing Clarity
         </h2>
         <p className="text-sm leading-7">
-          Improve image resolution online with our free AI image upscaler
-          powered by Real-ESRGAN technology. Enlarge photos, graphics,
-          and transparent PNG images by 2x or 4x directly in your browser.
-          Use our AI photo enhancer to improve image quality, upscale
-          low-resolution pictures, and create sharper, high-resolution
-          images without installing software.
+          Increase image resolution with this free online AI image upscaler.
+          Powered by Real-ESRGAN super-resolution models, the tool can enlarge
+          photos, digital artwork and graphics by 2x, 4x or 8x. Processing runs
+          in your browser, so your selected image is not sent to a server for
+          upscaling.
         </p>
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          Free Online Image Enlarger and Photo Quality Enhancer
-        </h2>
-        <p className="text-sm leading-7">
-          Looking for a free online image enlarger? Our AI image
-          enhancement tool helps increase image resolution online.
-          Enlarge small pictures, improve photo quality, and enhance
-          low-quality images using advanced AI super-resolution.
-          This online photo enhancer makes it easy to upscale images
-          without complicated editing software.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          How to Upscale an Image Online
-        </h2>
+        <h2 className="text-xl font-semibold text-white">How to Upscale an Image Online</h2>
         <ol className="list-decimal pl-6 space-y-2 text-sm leading-7">
-          <li>Upload a JPG, PNG, WebP, or BMP image.</li>
-          <li>Choose 2x or 4x image upscaling.</li>
-          <li>Start the AI image enhancement process.</li>
-          <li>Compare the original and enhanced images.</li>
-          <li>Download your upscaled high-resolution image.</li>
+          <li>Select an image from your device or drag it into the upload area.</li>
+          <li>Choose an enlargement level: 2x, 4x or 8x.</li>
+          <li>Select the enhancement style that best suits your image.</li>
+          <li>Start processing and wait for the result.</li>
+          <li>Compare the original and enhanced image, then download the result.</li>
         </ol>
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          Why Use Our AI Image Upscaler?
-        </h2>
+        <h2 className="text-xl font-semibold text-white">What Does AI Image Upscaling Do?</h2>
+        <p className="text-sm leading-7">
+          AI image upscaling uses a trained neural network to estimate details
+          when enlarging a picture. Real-ESRGAN is designed for image
+          super-resolution and can improve the appearance of many low-resolution
+          photos and graphics. The result depends on the source image; AI cannot
+          always recover details that were never present.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xl font-semibold text-white">Choose 2x, 4x or 8x Upscaling</h2>
         <ul className="list-disc pl-6 space-y-2 text-sm leading-7">
-          <li>Free online AI image upscaling.</li>
-          <li>AI-powered 2x and 4x resolution enhancement.</li>
-          <li>Improve low-resolution photos and graphics.</li>
-          <li>Supports transparent PNG images.</li>
-          <li>Browser-based image processing.</li>
-          <li>No software installation required.</li>
-          <li>Easy image enlargement and photo enhancement.</li>
-          <li>Download enhanced images directly to your device.</li>
+          <li><strong>2x:</strong> doubles the image width and height.</li>
+          <li><strong>4x:</strong> makes both dimensions four times larger.</li>
+          <li><strong>8x:</strong> makes both dimensions eight times larger, subject to device and output-size limits.</li>
         </ul>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          Enhance Low Quality Images with AI
-        </h2>
         <p className="text-sm leading-7">
-          Our AI photo enhancer uses Real-ESRGAN super-resolution
-          technology to reconstruct image details and improve visual
-          quality. It can help enhance low-quality images, enlarge
-          small photos, and sharpen image details. Results depend
-          on the original image and its quality.
+          Larger output images require more memory and processing time. If your
+          device struggles with a large image, try a lower enlargement level.
         </p>
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          Increase Image Resolution Online Without Software
-        </h2>
+        <h2 className="text-xl font-semibold text-white">Supported Image Formats</h2>
         <p className="text-sm leading-7">
-          Increase image resolution online without downloading
-          additional software. This browser-based image upscaler
-          supports common image formats and provides 2x and 4x
-          enlargement options. You can use this free image enlarger
-          for photos, digital artwork, graphics, and other images.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          2x vs 4x Image Upscaling
-        </h2>
-        <p className="text-sm leading-7">
-          Choose 2x upscaling to double the width and height of
-          your image. Choose 4x to increase both dimensions
-          fourfold. AI image resolution enhancement can improve
-          the appearance of low-resolution images. Larger images
-          may take longer to process depending on your device.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-white">
-          Supported Image Formats
-        </h2>
-        <p className="text-sm leading-7">
-          Our online image upscaler supports JPG, JPEG, PNG,
-          WebP, and BMP image formats. You can enlarge photos,
-          enhance transparent PNG graphics, and improve image
-          resolution directly in your browser.
+          Upload JPG, JPEG, PNG, WebP or BMP images. Transparent PNG artwork is
+          supported, including alpha transparency. The tool works in a modern
+          browser without requiring desktop image-editing software.
         </p>
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          Frequently Asked Questions About AI Image Upscaling
-        </h2>
+        <h2 className="text-xl font-semibold text-white">Frequently Asked Questions</h2>
 
         <div>
-          <h3 className="font-medium text-white">
-            Is this AI image upscaler free?
-          </h3>
+          <h3 className="font-medium text-white">Is this AI image upscaler free?</h3>
           <p className="text-sm leading-7">
-            Yes, you can use this image upscaling tool for free
-            to enhance and enlarge images online.
+            Yes. You can use the online upscaler without paying to process and
+            download enhanced images.
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-white">
-            Can I upscale PNG images with transparency?
-          </h3>
+          <h3 className="font-medium text-white">Are my images uploaded to a server?</h3>
           <p className="text-sm leading-7">
-            Yes, the tool supports transparent PNG images.
+            Image upscaling is performed in your browser. Your image is not
+            uploaded to a server for the enhancement process.
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-white">
-            Are my images uploaded to a server?
-          </h3>
+          <h3 className="font-medium text-white">Which image formats can I use?</h3>
           <p className="text-sm leading-7">
-            Image enhancement runs locally in your browser,
-            so your images are not uploaded to a server for processing.
+            The uploader accepts JPG, JPEG, PNG, WebP and BMP files.
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-white">
-            Does 4x upscaling improve every image?
-          </h3>
+          <h3 className="font-medium text-white">Can I enlarge a transparent PNG?</h3>
           <p className="text-sm leading-7">
-            Results depend on the original image quality.
-            AI enhancement cannot guarantee perfect details
-            in every photo or graphic.
+            Yes. PNG images with alpha transparency are supported.
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-white">
-            Can I improve blurry images online?
-          </h3>
+          <h3 className="font-medium text-white">What is the difference between 2x, 4x and 8x?</h3>
           <p className="text-sm leading-7">
-            AI upscaling may improve the appearance of some
-            blurry or low-resolution images, although results
-            depend on the original image.
+            These settings multiply both the width and height of the original
+            image by two, four or eight. Available output size can depend on
+            your device and the image dimensions.
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-white">
-            How can I increase image resolution?
-          </h3>
+          <h3 className="font-medium text-white">Will AI fix every blurry photo?</h3>
           <p className="text-sm leading-7">
-            Upload your image, select the 2x or 4x enlargement
-            option, and start the AI image enhancement process.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="font-medium text-white">
-            Do I need to install image editing software?
-          </h3>
-          <p className="text-sm leading-7">
-            No, this online AI image upscaler works directly
-            in your web browser without requiring additional software.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="font-medium text-white">
-            What is Real-ESRGAN technology?
-          </h3>
-          <p className="text-sm leading-7">
-            Real-ESRGAN is an AI-based image super-resolution
-            technology designed to improve image details and
-            upscale low-resolution pictures.
+            No. AI enhancement may improve some blurry or low-resolution
+            pictures, but results vary with the original image and cannot be
+            guaranteed for every photo.
           </p>
         </div>
       </div>
-
     </section>
   );
 }
