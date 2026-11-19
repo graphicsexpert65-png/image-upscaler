@@ -6,6 +6,7 @@
 
 import { AdBanner } from './components/AdBanner';
 import { SEOContent } from './components/SEOContent';
+import { Footer } from './components/Footer';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
@@ -199,6 +200,7 @@ export default function App() {
 
       {/* SEO content below the image upscaler */}
       <SEOContent />
+      <Footer />
 
       <AdBanner />
     </div>
