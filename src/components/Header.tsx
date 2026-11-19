@@ -13,7 +13,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ device }) => {
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur px-4 py-3 sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <div className="max-w-screen-2xl mx-auto px-2 sm:px-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-xs">
           <div className="hidden sm:flex items-center gap-1.5 text-slate-600">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
