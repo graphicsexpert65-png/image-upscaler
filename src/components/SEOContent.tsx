@@ -64,7 +64,15 @@ export function SEOContent() {
                 <span key={format} className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold tracking-wide text-slate-700">{format}</span>
               ))}
             </div>
-          </div>
+            <nav aria-label="Image upscaling guides" className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <h3 className="text-sm font-bold text-slate-950">Explore our image upscaling guides</h3>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li><a className="font-semibold text-blue-900 underline underline-offset-4" href="/ai-image-upscaler/">AI image upscaler guide</a></li>
+                <li><a className="font-semibold text-blue-900 underline underline-offset-4" href="/enlarge-image-2x/">How to enlarge an image 2x</a></li>
+                <li><a className="font-semibold text-blue-900 underline underline-offset-4" href="/enlarge-image-4x/">How to enlarge an image 4x</a></li>
+                <li><a className="font-semibold text-blue-900 underline underline-offset-4" href="/photo-resolution-enhancer/">Photo resolution enhancer guide</a></li>
+              </ul>
+            </nav>         </div>
 
           <div className="space-y-10">
             <article>
