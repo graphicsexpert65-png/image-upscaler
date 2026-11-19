@@ -200,9 +200,8 @@ export default function App() {
 
       {/* SEO content below the image upscaler */}
       <SEOContent />
-      <Footer />
-
       <AdBanner />
+      <Footer />
     </div>
   );
 }
