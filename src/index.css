@@ -21,3 +21,45 @@
     background-color: #ffffff;
   }
 }
+
+
+/* Clean white interface with a deep navy-blue visual system */
+@layer utilities {
+  .bg-checkerboard {
+    background-image: linear-gradient(45deg, #dbe3ee 25%, transparent 25%),
+      linear-gradient(-45deg, #dbe3ee 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #dbe3ee 75%),
+      linear-gradient(-45deg, transparent 75%, #dbe3ee 75%);
+    background-color: #f8fafc;
+  }
+  .bg-checkerboard-light {
+    background-color: #ffffff;
+  }
+}
+
+/* Re-map the existing component utility palette without changing image-processing logic. */
+.app-shell [class*="bg-zinc-950"],
+.app-shell [class*="bg-zinc-900"] { background-color: #ffffff !important; }
+.app-shell [class*="bg-zinc-800"] { background-color: #f1f5f9 !important; }
+.app-shell [class*="bg-zinc-700"] { background-color: #e2e8f0 !important; }
+.app-shell [class*="border-zinc-800"],
+.app-shell [class*="border-zinc-850"],
+.app-shell [class*="border-zinc-700"] { border-color: #dbe3ee !important; }
+.app-shell [class*="text-zinc-100"],
+.app-shell [class*="text-zinc-200"],
+.app-shell [class*="text-zinc-300"] { color: #172554 !important; }
+.app-shell [class*="text-zinc-400"],
+.app-shell [class*="text-zinc-500"] { color: #64748b !important; }
+.app-shell [class*="text-sky-300"],
+.app-shell [class*="text-sky-400"] { color: #172554 !important; }
+.app-shell [class*="border-sky-500"] { border-color: #172554 !important; }
+.app-shell [class*="bg-sky-500"] { background-color: #172554 !important; }
+.app-shell [class*="hover:bg-sky-400"]:hover { background-color: #243b70 !important; }
+.app-shell [class*="ring-sky-500"] { --tw-ring-color: #172554 !important; }
+.app-shell button[class*="bg-sky-500"],
+.app-shell button[class*="bg-sky-500"] span,
+.app-shell button[class*="bg-sky-500"] svg { color: #ffffff !important; }
+.app-shell button[class*="bg-zinc-800"] { background-color: #f1f5f9 !important; }
+.app-shell button[class*="text-zinc-100"] { color: #172554 !important; }
+.app-shell .app-intro { margin-bottom: 0.5rem; }
+.app-shell :focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
