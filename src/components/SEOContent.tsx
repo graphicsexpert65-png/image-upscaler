@@ -121,6 +121,18 @@ export function SEOContent() {
               <p className="text-sm sm:text-base leading-7 text-slate-600">Upload JPG, JPEG, PNG, WebP or BMP images. Transparent PNG artwork is supported, including alpha transparency. The tool works in a modern browser without requiring desktop image-editing software.</p>
             </article>
 
+            <article className="border-t border-slate-200 pt-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-950">Tips for getting better image upscaling results</h3>
+              <p className="mt-3 text-sm sm:text-base leading-7 text-slate-600">
+                Start with the clearest, highest-resolution original file you have. Avoid repeatedly enlarging an already upscaled image, because each generation can make artifacts more noticeable. For a modest size increase, try 2x first; use 4x when you need a larger image, and choose 8x only when your device has enough memory and you need the extra dimensions.
+              </p>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm sm:text-base leading-7 text-slate-600">
+                <li>Use the original photo or graphic instead of a compressed screenshot when possible.</li>
+                <li>Preview the result at full size to check faces, fine lines, text and edges.</li>
+                <li>Keep the original file so you can compare results or try a different enlargement level.</li>
+              </ul>
+            </article>
+
             <article className="border-t border-slate-200 pt-8" aria-labelledby="image-upscaler-faq">
               <div className="flex items-center gap-3 mb-5">
                 <span className="h-9 w-9 rounded-lg bg-blue-950 text-white flex items-center justify-center text-sm font-bold">05</span>
