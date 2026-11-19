@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 const faqs = [
   ['Is this AI image upscaler free?', 'Yes. You can use the online upscaler without paying to process and download enhanced images.'],
@@ -13,38 +13,26 @@ const faqs = [
 export function Footer() {
   return (
     <footer className="bg-[#101f3d] text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
-        <div className="max-w-3xl mb-9">
-          <span className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] uppercase text-blue-200">
-            <Sparkles className="h-4 w-4" /> Help centre
-          </span>
-          <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">FAQs</h2>
-          <p className="mt-3 text-sm sm:text-base leading-7 text-blue-100/75">Helpful answers about image enhancement, privacy and file support.</p>
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-8 xl:px-12 2xl:px-16 pt-8 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">FAQs</h2>
+            <p className="mt-1 text-xs sm:text-sm text-blue-100/70">Quick answers about image enhancement and privacy.</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-0 border-t border-white/15">
-          {faqs.map(([question, answer], index) => (
-            <article key={question} className="py-6 border-b border-white/15">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 text-xs font-bold text-blue-300">0{index + 1}</span>
-                <div>
-                  <h3 className="text-base font-semibold text-white">{question}</h3>
-                  <p className="mt-2 text-sm leading-7 text-blue-100/70">{answer}</p>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 border-t border-white/15">
+          {faqs.map(([question, answer]) => (
+            <article key={question} className="py-3 border-b border-white/15">
+              <h3 className="text-sm font-semibold text-white">{question}</h3>
+              <p className="mt-1 text-xs leading-5 text-blue-100/70">{answer}</p>
             </article>
           ))}
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center font-bold text-sm">AI</div>
-            <div>
-              <p className="font-semibold text-white">AI Image Upscaler</p>
-              <p className="text-xs text-blue-200/70">Enhance images with confidence.</p>
-            </div>
-          </div>
-          <p className="text-xs text-blue-200/60 flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Process images privately in your browser</p>
+        <div className="mt-5 pt-4 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-white">AI Image Upscaler</p>
+          <p className="text-xs text-blue-200/65 flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Private browser processing</p>
           <p className="text-xs text-blue-200/50">© {new Date().getFullYear()} AI Image Upscaler</p>
         </div>
       </div>
