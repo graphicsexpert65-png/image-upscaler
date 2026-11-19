@@ -132,7 +132,7 @@ export default function App() {
     <div className="app-shell min-h-screen bg-white text-slate-900 flex flex-col antialiased selection:bg-blue-100 selection:text-slate-950">
       <Header device={device} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+      <main className="flex-1 max-w-screen-2xl w-full mx-auto px-4 sm:px-8 xl:px-12 2xl:px-16 py-8 sm:py-12 space-y-8">
         <section className="app-intro max-w-3xl mx-auto text-center space-y-3 pb-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">
             <span className="h-2 w-2 rounded-full bg-blue-900" /> FREE ONLINE AI PHOTO ENHANCER
