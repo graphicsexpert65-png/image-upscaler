@@ -14,8 +14,8 @@ import {
   bleedTransparentColors,
   loadImageElement,
 } from './imageUtils';
-import { ENHANCEMENT_MODES, applyEnhancementRefinement, blendOriginalForNatural2x } from './enhancement';
-import { computeSafeScaleDimensions, MAX_SAFE_CANVAS_DIM } from './canvasLimits';
+import { ENHANCEMENT_MODES, applyEnhancementRefinement, blendOriginalForNaturalOutput } from './enhancement';
+import { computeSafeScaleDimensions, MAX_SAFE_CANVAS_DIM, MAX_SAFE_TOTAL_RAM_MB } from './canvasLimits';
 import { detectDeviceCapabilities } from './device';
 import { getOrLoadModelSession } from './modelManager';
 import { generateSeamlessTiles, determineOptimalTileSize } from './tiler';
@@ -45,23 +45,22 @@ export async function runUpscalePipeline(
     options.scale
   );
 
-  // If requested scale exceeds safe browser limits, guide user cleanly
-  if (safeDims.exceedsSafeLimit && safeDims.warningMessage && safeDims.isCapped) {
-    if (options.scale === 4 && (imageInfo.width > 3000 || imageInfo.height > 3000)) {
-      throw new Error(
-        'This image is too large for 4× processing in your current browser. Try 2× upscaling or a smaller image.'
-      );
-    }
+  // Never start a job when even the capped estimate exceeds our browser RAM budget.
+  if (safeDims.estMemoryMb > MAX_SAFE_TOTAL_RAM_MB) {
+    throw new Error(
+      'This image is too large for safe processing in this browser. Please use a smaller image or choose a lower upscale factor.'
+    );
   }
 
   const targetW = safeDims.effectiveWidth;
   const targetH = safeDims.effectiveHeight;
-  const modelScale = 4; // Native Real-ESRGAN scaling factor
+  const modelScale = 4; // Real-ESRGAN model's native scale
 
-  // Critical for 2X & natural portraits:
-  // Feed the native original image into the neural network.
-  let workingW = imageInfo.width;
-  let workingH = imageInfo.height;
+  // When the requested output is capped, reduce the model input by the same ratio.
+  // This keeps the intermediate 4x model canvas within the estimated memory budget.
+  const processingInputScale = Math.min(1, safeDims.effectiveScale / options.scale);
+  let workingW = Math.max(1, Math.round(imageInfo.width * processingInputScale));
+  let workingH = Math.max(1, Math.round(imageInfo.height * processingInputScale));
 
   if (workingW * modelScale > MAX_SAFE_CANVAS_DIM || workingH * modelScale > MAX_SAFE_CANVAS_DIM) {
     const clampRatio = Math.min(
@@ -378,7 +377,7 @@ async function runInMainThread(params: {
   stageTimer.set('finalResize', performance.now() - resizeStart);
 
   // Use only a light original-image blend: heavy blending softens fine facial texture.
-  const originalBlendWeight = params.options.scale === 2 ? 0.02 : params.options.scale === 4 ? 0.01 : 0.005;
+  const originalBlendWeight = params.options.scale === 2 ? 0.05 : params.options.scale === 4 ? 0.03 : 0.02;
   if (params.options.mode === 'preserve') {
     const naturalCtx = finalCanvas.getContext('2d');
     if (naturalCtx) {
@@ -390,7 +389,7 @@ async function runInMainThread(params: {
     }
   }
 
-  // Apply subtle mode refinement at final resolution only if needed
+  // Apply the selected finishing filter at final resolution.
   const enhStart = performance.now();
   {
     const finalCtx = finalCanvas.getContext('2d');
