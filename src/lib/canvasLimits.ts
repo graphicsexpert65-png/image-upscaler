@@ -40,9 +40,9 @@ export function computeSafeScaleDimensions(
   const sourceBytes = origW * origH * 4;
   const model4xBytes = (origW * 4) * (origH * 4) * 4;
   const targetBytes = reqW * reqH * 4;
-  const workingTensorsBytes = 48 * 1024 * 1024; // Tensor buffer overhead
-
-  const peakBytes = sourceBytes + model4xBytes + targetBytes + workingTensorsBytes;
+  const workingTensorsBytes = 64 * 1024 * 1024; // Conservative allowance for model tensors and runtime buffers
+  const variableBytes = model4xBytes + targetBytes;
+  const peakBytes = sourceBytes + variableBytes + workingTensorsBytes;
   const estMemoryMb = Math.round(peakBytes / (1024 * 1024));
 
   const exceedsHardwareLimits =
@@ -65,15 +65,22 @@ export function computeSafeScaleDimensions(
     };
   }
 
-  // Calculate clamp factor if hardware limits are exceeded
+  // Clamp for both canvas limits and estimated peak memory. The inference input
+  // is reduced by the same factor in inference.ts so the model's 4x buffer also shrinks.
   const dimFactor = Math.min(MAX_SAFE_CANVAS_DIM / reqW, MAX_SAFE_CANVAS_DIM / reqH);
   const pixelFactor = Math.sqrt(MAX_SAFE_CANVAS_PIXELS / (reqW * reqH));
-  const clampFactor = Math.min(1.0, Math.min(dimFactor, pixelFactor));
+  const hardwareFactor = Math.min(1, dimFactor, pixelFactor);
+  const availableVariableBytes = Math.max(0, MAX_SAFE_TOTAL_RAM_MB * 1024 * 1024 - sourceBytes - workingTensorsBytes);
+  const memoryFactor = variableBytes > 0
+    ? Math.sqrt(availableVariableBytes / variableBytes)
+    : 1;
+  const clampFactor = Math.max(0.01, Math.min(hardwareFactor, memoryFactor, 1));
 
-  const effW = Math.max(origW, Math.round(reqW * clampFactor));
-  const effH = Math.max(origH, Math.round(reqH * clampFactor));
+  const effW = Math.max(1, Math.round(reqW * clampFactor));
+  const effH = Math.max(1, Math.round(reqH * clampFactor));
   const effTargetBytes = effW * effH * 4;
-  const clampedPeakMb = Math.round((sourceBytes + model4xBytes + effTargetBytes + workingTensorsBytes) / (1024 * 1024));
+  const effModelBytes = model4xBytes * clampFactor * clampFactor;
+  const clampedPeakMb = Math.round((sourceBytes + effModelBytes + effTargetBytes + workingTensorsBytes) / (1024 * 1024));
 
   const recommendation =
     scale === 8
@@ -87,7 +94,7 @@ export function computeSafeScaleDimensions(
     requestedHeight: reqH,
     effectiveWidth: effW,
     effectiveHeight: effH,
-    isCapped: exceedsHardwareLimits,
+    isCapped: clampFactor < 0.999,
     effectiveScale: Number((effW / origW).toFixed(2)),
     estMemoryMb: clampedPeakMb,
     exceedsSafeLimit: true,
