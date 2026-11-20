@@ -18,30 +18,29 @@ export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Preserve Original',
     description: 'Maximum fidelity to original. Zero artificial sharpening, beautification, or contrast alteration. Preserves natural skin texture, soft lighting, and authentic details.',
-    sharpness: 0.0,
+    sharpness: 0.12,
     contrastBalance: 1.0,
   },
   natural: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Natural Detail',
     description: 'Subtle photographic enhancement. Micro-contrast is kept gentle to preserve authentic facial identity, skin tone, and natural lines without halos or artificial sharpness.',
-    sharpness: 0.08,
+    sharpness: 0.20,
     contrastBalance: 1.0,
   },
   sharp: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Sharp Detail',
     description: 'Clean edge definition for architectural textures, product lines, and typography without cartoon-like or waxy artifacts.',
-    sharpness: 0.18,
+    sharpness: 0.32,
     contrastBalance: 1.01,
   },
 };
 
 /**
- * Applies subtle, high-grade post-reconstruction refinement according to selected mode.
- * - 'preserve': Leaves pixel tensor 100% pristine.
- * - 'natural': Applies very subtle high-frequency definition with strict halo clamping.
- * - 'sharp': Clean edge definition without unnatural facial reconstruction.
+ * Applies restrained refinement after AI reconstruction.
+ * Natural/Preserve still responds to strength and denoise controls.
+ * Denoising uses luminance-guided neighbour weights to avoid averaging across edges.
  */
 export function applyEnhancementRefinement(
   data: Uint8ClampedArray,
@@ -52,34 +51,47 @@ export function applyEnhancementRefinement(
   denoise = 0
 ) {
   const { sharpness } = ENHANCEMENT_MODES[mode];
-  if (sharpness <= 0 && denoise <= 0) return;
-
-  const copy = new Uint8ClampedArray(data);
-  const denoiseAmount = Math.max(0, Math.min(40, denoise)) / 100;
-
-  // Subtle unsharp mask kernel: [0, -1, 0, -1, 4, -1, 0, -1, 0]
-  // Weight is conservative to prevent plastic/waxy appearance
   const strengthFactor = Math.max(0, Math.min(1, strength / 100));
-  const weight = sharpness * 0.25 * strengthFactor;
+  const denoiseAmount = Math.max(0, Math.min(40, denoise)) / 100;
+  const sharpenWeight = sharpness * 0.25 * strengthFactor;
+  if (sharpenWeight <= 0 && denoiseAmount <= 0) return;
+
+  const source = new Uint8ClampedArray(data);
+  const luminance = (i: number) =>
+    source[i] * 0.2126 + source[i + 1] * 0.7152 + source[i + 2] * 0.0722;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const idx = (y * width + x) * 4;
+      const neighbours = [
+        idx - width * 4,
+        idx + width * 4,
+        idx - 4,
+        idx + 4,
+      ];
+      const centerLum = luminance(idx);
+      let weightSum = 0;
+      const channelSums = [0, 0, 0];
+      let laplacian = 0;
+
+      for (const n of neighbours) {
+        const difference = Math.abs(centerLum - luminance(n));
+        // Similar-colour neighbours contribute; strong edges are protected.
+        const edgeWeight = 1 / (1 + Math.pow(difference / 20, 2));
+        weightSum += edgeWeight;
+        for (let c = 0; c < 3; c++) channelSums[c] += source[n + c] * edgeWeight;
+        laplacian += source[idx] - source[n];
+      }
 
       for (let c = 0; c < 3; c++) {
-        const center = copy[idx + c];
-        const top = copy[((y - 1) * width + x) * 4 + c];
-        const bottom = copy[((y + 1) * width + x) * 4 + c];
-        const left = copy[(y * width + (x - 1)) * 4 + c];
-        const right = copy[(y * width + (x + 1)) * 4 + c];
-
-        const laplacian = 4 * center - top - bottom - left - right;
-        const localAverage = (top + bottom + left + right) / 4;
-        const denoisedCenter = center * (1 - denoiseAmount) + localAverage * denoiseAmount;
-        // Strict delta limit (max ±8) prevents edge halos, ringing, and artificial pores
-        const delta = Math.max(-8, Math.min(8, laplacian * weight));
-        data[idx + c] = Math.max(0, Math.min(255, Math.round(denoisedCenter + delta)));
+        const center = source[idx + c];
+        const guidedAverage = channelSums[c] / Math.max(weightSum, 0.0001);
+        const denoised = center + (guidedAverage - center) * denoiseAmount;
+        const channelLaplacian = 4 * center - neighbours.reduce((sum, n) => sum + source[n + c], 0);
+        const delta = Math.max(-6, Math.min(6, channelLaplacian * sharpenWeight));
+        data[idx + c] = Math.max(0, Math.min(255, Math.round(denoised + delta)));
       }
+      data[idx + 3] = source[idx + 3];
     }
   }
 }
