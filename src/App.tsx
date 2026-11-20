@@ -35,6 +35,9 @@ export default function App() {
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [scale, setScale] = useState<UpscaleScale>(4);
   const [mode, setMode] = useState<EnhancementMode>('preserve');
+  const [strength, setStrength] = useState<number>(55);
+  const [denoise, setDenoise] = useState<number>(0);
+  const [faceEnhancement, setFaceEnhancement] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<ProgressType | null>(null);
   const [result, setResult] = useState<UpscaleResult | null>(null);
@@ -98,7 +101,7 @@ export default function App() {
     try {
       const upscaleResult = await runUpscalePipeline(
         imageInfo,
-        { scale, mode },
+        { scale, mode, strength, denoise, faceEnhancement },
         (p) => setProgress(p),
         controller.signal
       );
@@ -186,6 +189,12 @@ export default function App() {
               onScaleChange={setScale}
               mode={mode}
               onModeChange={setMode}
+              strength={strength}
+              onStrengthChange={setStrength}
+              denoise={denoise}
+              onDenoiseChange={setDenoise}
+              faceEnhancement={faceEnhancement}
+              onFaceEnhancementChange={setFaceEnhancement}
               originalWidth={imageInfo.width}
               originalHeight={imageInfo.height}
               onStartUpscale={handleStartUpscale}
