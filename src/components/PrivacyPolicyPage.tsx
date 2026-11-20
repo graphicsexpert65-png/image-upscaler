@@ -35,9 +35,11 @@ export function PrivacyPolicyPage() {
 
         <section className="mt-7 space-y-3">
           <h2 className="text-xl font-bold text-slate-950">2. Advertising and third-party services</h2>
-          <p className="leading-7">This website may display advertisements from Google AdSense, Adsterra, or other advertising partners. These third parties may use cookies, similar technologies, or device identifiers to deliver, measure, and personalize advertising, subject to their own privacy policies and your available settings. Their data practices are controlled by those providers, not by Graphics Expert.</p>
+          <p className="leading-7">This website may display advertisements from Google AdSense, Adsterra, or other third-party advertising partners. Google and its partner vendors may use cookies or similar technologies to serve ads, measure ad performance, prevent fraud, and, where enabled, show personalized ads based on a user's previous visits to this or other websites. Other advertising partners, including Adsterra, may also use cookies or similar technologies in connection with the ads they serve. These providers may collect or receive information such as your browser, device, IP address, or interaction with advertisements, subject to their own privacy policies and settings. Graphics Expert does not control the data practices of these third parties.</p>
+          <p className="leading-7">You can manage personalized advertising from Google through <a className="text-blue-700 underline" href="https://adssettings.google.com/" target="_blank" rel="noreferrer">Google Ads Settings</a>. You can also manage or delete cookies through your browser settings. Your available choices may vary by provider, device, and location.</p>
           <ul className="list-disc pl-6 space-y-2 leading-7">
             <li><a className="text-blue-700 underline" href="https://policies.google.com/technologies/ads" target="_blank" rel="noreferrer">Google advertising and cookie information</a></li>
+            <li><a className="text-blue-700 underline" href="https://support.google.com/adsense/answer/1348695" target="_blank" rel="noreferrer">Google AdSense Privacy Policy requirements</a></li>
             <li><a className="text-blue-700 underline" href="https://adsterra.com/privacy-policy/" target="_blank" rel="noreferrer">Adsterra Privacy Policy</a></li>
           </ul>
         </section>
@@ -53,7 +55,7 @@ export function PrivacyPolicyPage() {
 
         <section className="mt-7 space-y-3">
           <h2 className="text-xl font-bold text-slate-950">4. Cookies and your choices</h2>
-          <p className="leading-7">Graphics Expert does not use an account or login system on this tool. Advertising and analytics partners may use cookies or similar technologies as described above. You can manage or delete cookies through your browser settings. You can also review Google's advertising settings and the privacy choices offered by the relevant third-party providers. Blocking cookies may affect some advertising or website features.</p>
+          <p className="leading-7">Graphics Expert does not use an account or login system on this tool. Advertising and analytics partners may use cookies or similar technologies as described in this policy. You can manage or delete cookies through your browser settings. To control Google's personalized advertising, visit <a className="text-blue-700 underline" href="https://adssettings.google.com/" target="_blank" rel="noreferrer">Google Ads Settings</a>. You may also review the privacy choices offered by other advertising providers. Blocking cookies may affect some advertising or website features.</p>
         </section>
 
         <section className="mt-7 space-y-3">
