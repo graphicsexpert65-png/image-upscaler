@@ -63,6 +63,9 @@ export interface UpscaleResult {
 export interface UpscaleOptions {
   scale: UpscaleScale;
   mode: EnhancementMode;
+  strength?: number;
+  denoise?: number;
+  faceEnhancement?: boolean;
   tileSize?: number;
   overlap?: number;
 }
