@@ -17,14 +17,14 @@ export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
   preserve: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Preserve Original',
-    description: 'Maximum fidelity to original. Zero artificial sharpening, beautification, or contrast alteration. Preserves natural skin texture, soft lighting, and authentic details.',
+    description: 'Natural-looking output with restrained detail recovery, no beautification, and minimal contrast alteration. Preserves natural skin texture, soft lighting, and authentic details.',
     sharpness: 0.12,
     contrastBalance: 1.0,
   },
   natural: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Natural Detail',
-    description: 'Subtle photographic enhancement. Micro-contrast is kept gentle to preserve authentic facial identity, skin tone, and natural lines without halos or artificial sharpness.',
+    description: 'Balanced photographic enhancement. Micro-contrast is kept gentle to preserve authentic facial identity, skin tone, and natural lines without halos or artificial sharpness.',
     sharpness: 0.20,
     contrastBalance: 1.0,
   },
@@ -72,7 +72,6 @@ export function applyEnhancementRefinement(
       const centerLum = luminance(idx);
       let weightSum = 0;
       const channelSums = [0, 0, 0];
-      let laplacian = 0;
 
       for (const n of neighbours) {
         const difference = Math.abs(centerLum - luminance(n));
@@ -80,7 +79,6 @@ export function applyEnhancementRefinement(
         const edgeWeight = 1 / (1 + Math.pow(difference / 20, 2));
         weightSum += edgeWeight;
         for (let c = 0; c < 3; c++) channelSums[c] += source[n + c] * edgeWeight;
-        laplacian += source[idx] - source[n];
       }
 
       for (let c = 0; c < 3; c++) {
