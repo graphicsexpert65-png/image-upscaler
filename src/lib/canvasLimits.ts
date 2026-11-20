@@ -76,8 +76,8 @@ export function computeSafeScaleDimensions(
     : 1;
   const clampFactor = Math.max(0.01, Math.min(hardwareFactor, memoryFactor, 1));
 
-  const effW = Math.max(1, Math.round(reqW * clampFactor));
-  const effH = Math.max(1, Math.round(reqH * clampFactor));
+  const effW = Math.max(origW, Math.round(reqW * clampFactor));
+  const effH = Math.max(origH, Math.round(reqH * clampFactor));
   const effTargetBytes = effW * effH * 4;
   const effModelBytes = model4xBytes * clampFactor * clampFactor;
   const clampedPeakMb = Math.round((sourceBytes + effModelBytes + effTargetBytes + workingTensorsBytes) / (1024 * 1024));
