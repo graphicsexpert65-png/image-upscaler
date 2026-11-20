@@ -5,7 +5,7 @@
 
 import { ProcessingProgress, UpscaleOptions, UpscaleResult } from '../types';
 import { WorkerStartPayload } from './upscaleWorker';
-import { applyEnhancementRefinement, blendOriginalForNatural2x } from './enhancement';
+import { applyEnhancementRefinement, blendOriginalForNaturalOutput } from './enhancement';
 import { StageTimer } from './profiler';
 
 let persistentWorker: Worker | null = null;
@@ -186,7 +186,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         stageTimer.set('finalResize', performance.now() - resizeStart);
 
         // Use only a light original-image blend: heavy blending softens fine facial texture.
-        const originalBlendWeight = params.options.scale === 2 ? 0.02 : params.options.scale === 4 ? 0.01 : 0.005;
+        const originalBlendWeight = params.options.scale === 2 ? 0.05 : params.options.scale === 4 ? 0.03 : 0.02;
         if (params.options.mode === 'preserve') {
           const naturalCtx = finalCanvas.getContext('2d');
           if (naturalCtx) {
@@ -199,7 +199,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         }
 
         // 3. Apply subtle mode refinement directly at final resolution
-        // (Preserve Original: 0 modification; Natural: subtle 0.08 refinement)
+        // Uses the same mode-specific finishing filter as the main-thread path.
         const enhStart = performance.now();
         {
           const finalCtx = finalCanvas.getContext('2d');
