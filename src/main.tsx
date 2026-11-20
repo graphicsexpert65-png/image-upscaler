@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import App from './App.tsx';
 import { SeoLandingPage } from './components/SeoLandingPage';
+import { AboutCreatorPage } from './components/AboutCreatorPage';
 import './index.css';
 
 const seoPaths = ['/ai-image-upscaler', '/enlarge-image-2x', '/enlarge-image-4x', '/photo-resolution-enhancer'];
@@ -25,7 +26,7 @@ function HomeCanonical() {
 createRoot(document.getElementById('root')!).render(
   <>
     {currentPath === '/' && <HomeCanonical />}
-    {seoPaths.includes(currentPath) ? <SeoLandingPage /> : <App />}
+    {currentPath === '/about-graphics-expert' ? <AboutCreatorPage /> : seoPaths.includes(currentPath) ? <SeoLandingPage /> : <App />}
     <Analytics />
   </>
 );
