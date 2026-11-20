@@ -90,12 +90,15 @@ export const UpscaleControls: React.FC<UpscaleControlsProps> = ({
                   {dims.effectiveWidth.toLocaleString()} × {dims.effectiveHeight.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-zinc-500 mt-0.5">
-                  ~{dims.estMemoryMb} MB RAM
+                  ~{dims.estMemoryMb} MB est. peak
                 </div>
               </button>
             );
           })}
         </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+          2× and 8× use the same native 4× AI model with high-quality resizing. 8× is enlarged from the 4× AI result; a native 8× AI model is not connected.
+        </p>
 
         {selectedDims.warningMessage && (
           <div className="mt-2.5 flex items-start gap-2 p-3 rounded-lg bg-amber-950/20 border border-amber-800/40 text-amber-200 text-xs">
@@ -112,7 +115,7 @@ export const UpscaleControls: React.FC<UpscaleControlsProps> = ({
             2. Enhancement Mode
           </label>
           <span className="text-xs text-zinc-400">
-            Affects neural reconstruction & filtering
+            Same AI model; modes adjust finishing filters
           </span>
         </div>
 
