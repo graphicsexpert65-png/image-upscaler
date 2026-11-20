@@ -68,7 +68,7 @@ export function PrivacyPolicyPage() {
 
         <section className="mt-7 space-y-3">
           <h2 className="text-xl font-bold text-slate-950">7. Contact</h2>
-          <p className="leading-7">This website is created and maintained by Graphics Expert. If you have a privacy question, please use the website's About Graphics Expert page for information about the creator. A direct contact email can be added here once the website owner provides the address.</p>
+          <p className="leading-7">This website is created and maintained by Graphics Expert. If you have a privacy question, you can contact Graphics Expert at <a className="text-blue-700 underline" href="mailto:graphicsexpert65@gmail.com">graphicsexpert65@gmail.com</a>.</p>
         </section>
         <div className="mt-10 pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-sm">
           <a href="/" className="font-semibold text-blue-800 hover:underline">Image Upscaler Home</a>
