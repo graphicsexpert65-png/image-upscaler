@@ -191,7 +191,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
           const naturalCtx = finalCanvas.getContext('2d');
           if (naturalCtx) {
             const naturalImage = naturalCtx.getImageData(0, 0, targetW, targetH);
-            blendOriginalForNatural2x(
+            blendOriginalForNaturalOutput(
               naturalImage.data, targetW, targetH, params.srcPixels, params.workingW, params.workingH, originalBlendWeight
             );
             naturalCtx.putImageData(naturalImage, 0, 0);
