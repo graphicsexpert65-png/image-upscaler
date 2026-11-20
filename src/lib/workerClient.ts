@@ -185,13 +185,14 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         }
         stageTimer.set('finalResize', performance.now() - resizeStart);
 
-        // For 2x Preserve, gently retain original photographic texture.
-        if (params.options.scale === 2 && params.options.mode === 'preserve') {
+        // Gently retain original photographic texture at every output scale in Preserve mode.
+        const originalBlendWeight = params.options.scale === 2 ? 0.25 : params.options.scale === 4 ? 0.14 : 0.08;
+        if (params.options.mode === 'preserve') {
           const naturalCtx = finalCanvas.getContext('2d');
           if (naturalCtx) {
             const naturalImage = naturalCtx.getImageData(0, 0, targetW, targetH);
             blendOriginalForNatural2x(
-              naturalImage.data, targetW, targetH, params.srcPixels, params.workingW, params.workingH, 0.25
+              naturalImage.data, targetW, targetH, params.srcPixels, params.workingW, params.workingH, originalBlendWeight
             );
             naturalCtx.putImageData(naturalImage, 0, 0);
           }
