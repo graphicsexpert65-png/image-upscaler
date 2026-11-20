@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({ device }) => {
         <div className="flex items-center gap-2.5 ml-auto text-right">
           <div>
             <h1 className="text-base sm:text-lg font-bold text-slate-950 tracking-tight leading-none">
-              AI Image Upscaler
+              Image Upscaler
             </h1>
             <p className="text-xs text-slate-500 mt-1">
               Enhance photos online · 2×, 4× &amp; 8×
