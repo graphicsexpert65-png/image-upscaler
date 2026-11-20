@@ -58,12 +58,11 @@ export function determineOptimalTileSize(
     return 512;
   }
 
-  // WASM backend: slightly larger tiles reduce per-tile setup and inference overhead.
-  // Keep lower-memory devices at 320px to avoid a large activation-memory increase.
+  // WASM backend: 256px to 384px maximizes CPU throughput without exceeding memory
   if (deviceMemoryGB && deviceMemoryGB >= 8) {
     return 384;
   }
-  return 320;
+  return 256;
 }
 
 /**
