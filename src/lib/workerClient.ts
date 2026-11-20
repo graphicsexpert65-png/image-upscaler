@@ -205,7 +205,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
           const finalCtx = finalCanvas.getContext('2d');
           if (finalCtx) {
             const finalImgData = finalCtx.getImageData(0, 0, targetW, targetH);
-            applyEnhancementRefinement(finalImgData.data, targetW, targetH, params.options.mode);
+            applyEnhancementRefinement(finalImgData.data, targetW, targetH, params.options.mode, params.options.strength, params.options.denoise);
             finalCtx.putImageData(finalImgData, 0, 0);
           }
         }
