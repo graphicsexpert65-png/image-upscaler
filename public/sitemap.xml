@@ -36,4 +36,4 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-</urlset>
+  <url>\n    <loc>https://image-upscaler-74z.pages.dev/privacy-policy/</loc>\n    <lastmod>2026-11-21</lastmod>\n    <changefreq>yearly</changefreq>\n    <priority>0.5</priority>\n  </url>\n</urlset>
