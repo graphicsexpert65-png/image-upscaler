@@ -5,7 +5,7 @@
 
 import { ProcessingProgress, UpscaleOptions, UpscaleResult } from '../types';
 import { WorkerStartPayload } from './upscaleWorker';
-import { applyEnhancementRefinement } from './enhancement';
+import { applyEnhancementRefinement, blendOriginalForNatural2x } from './enhancement';
 import { StageTimer } from './profiler';
 
 let persistentWorker: Worker | null = null;
@@ -185,6 +185,18 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         }
         stageTimer.set('finalResize', performance.now() - resizeStart);
 
+        // For 2x Preserve, gently retain original photographic texture.
+        if (params.options.scale === 2 && params.options.mode === 'preserve') {
+          const naturalCtx = finalCanvas.getContext('2d');
+          if (naturalCtx) {
+            const naturalImage = naturalCtx.getImageData(0, 0, targetW, targetH);
+            blendOriginalForNatural2x(
+              naturalImage.data, targetW, targetH, params.srcPixels, params.workingW, params.workingH, 0.25
+            );
+            naturalCtx.putImageData(naturalImage, 0, 0);
+          }
+        }
+
         // 3. Apply subtle mode refinement directly at final resolution
         // (Preserve Original: 0 modification; Natural: subtle 0.08 refinement)
         const enhStart = performance.now();
@@ -289,7 +301,7 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
 
     const payload: WorkerStartPayload = {
       modelFile: params.modelFile,
-      srcPixels: params.srcPixels,
+      srcPixels: params.srcPixels.slice(),
       origW: params.origW,
       origH: params.origH,
       workingW: params.workingW,
@@ -303,6 +315,6 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
     };
 
     // Zero-copy transfer of srcPixels ArrayBuffer to the worker
-    worker.postMessage({ type: 'START_UPSCALE', payload }, [params.srcPixels.buffer]);
+    worker.postMessage({ type: 'START_UPSCALE', payload }, [payload.srcPixels.buffer]);
   });
 }
