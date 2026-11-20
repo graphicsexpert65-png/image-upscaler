@@ -378,7 +378,7 @@ async function runInMainThread(params: {
   stageTimer.set('finalResize', performance.now() - resizeStart);
 
   // Use only a light original-image blend: heavy blending softens fine facial texture.
-  const originalBlendWeight = params.options.scale === 2 ? 0.08 : params.options.scale === 4 ? 0.04 : 0.02;
+  const originalBlendWeight = params.options.scale === 2 ? 0.02 : params.options.scale === 4 ? 0.01 : 0.005;
   if (params.options.mode === 'preserve') {
     const naturalCtx = finalCanvas.getContext('2d');
     if (naturalCtx) {
@@ -392,7 +392,7 @@ async function runInMainThread(params: {
 
   // Apply subtle mode refinement at final resolution only if needed
   const enhStart = performance.now();
-  if (params.options.mode !== 'preserve') {
+  {
     const finalCtx = finalCanvas.getContext('2d');
     if (finalCtx) {
       const finalImgData = finalCtx.getImageData(0, 0, targetW, targetH);
