@@ -14,7 +14,7 @@ import {
   bleedTransparentColors,
   loadImageElement,
 } from './imageUtils';
-import { ENHANCEMENT_MODES, applyEnhancementRefinement } from './enhancement';
+import { ENHANCEMENT_MODES, applyEnhancementRefinement, blendOriginalForNatural2x } from './enhancement';
 import { computeSafeScaleDimensions, MAX_SAFE_CANVAS_DIM } from './canvasLimits';
 import { detectDeviceCapabilities } from './device';
 import { getOrLoadModelSession } from './modelManager';
@@ -376,6 +376,18 @@ async function runInMainThread(params: {
     finalCtx.drawImage(outCanvas4, 0, 0, targetW, targetH);
   }
   stageTimer.set('finalResize', performance.now() - resizeStart);
+
+  // For 2x Preserve, gently retain original photographic texture.
+  if (params.options.scale === 2 && params.options.mode === 'preserve') {
+    const naturalCtx = finalCanvas.getContext('2d');
+    if (naturalCtx) {
+      const naturalImage = naturalCtx.getImageData(0, 0, targetW, targetH);
+      blendOriginalForNatural2x(
+        naturalImage.data, targetW, targetH, srcPixels, workingW, workingH, 0.25
+      );
+      naturalCtx.putImageData(naturalImage, 0, 0);
+    }
+  }
 
   // Apply subtle mode refinement at final resolution only if needed
   const enhStart = performance.now();
