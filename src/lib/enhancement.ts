@@ -47,7 +47,9 @@ export function applyEnhancementRefinement(
   data: Uint8ClampedArray,
   width: number,
   height: number,
-  mode: EnhancementMode
+  mode: EnhancementMode,
+  strength = 100,
+  denoise = 0
 ) {
   if (mode === 'preserve') {
     return; // 100% pristine output from the neural network
@@ -57,10 +59,12 @@ export function applyEnhancementRefinement(
   if (sharpness <= 0) return;
 
   const copy = new Uint8ClampedArray(data);
+  const denoiseAmount = Math.max(0, Math.min(40, denoise)) / 100;
 
   // Subtle unsharp mask kernel: [0, -1, 0, -1, 4, -1, 0, -1, 0]
   // Weight is conservative to prevent plastic/waxy appearance
-  const weight = sharpness * 0.25;
+  const strengthFactor = Math.max(0, Math.min(1, strength / 100));
+  const weight = sharpness * 0.25 * strengthFactor;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
@@ -74,9 +78,11 @@ export function applyEnhancementRefinement(
         const right = copy[(y * width + (x + 1)) * 4 + c];
 
         const laplacian = 4 * center - top - bottom - left - right;
+        const localAverage = (top + bottom + left + right) / 4;
+        const denoisedCenter = center * (1 - denoiseAmount) + localAverage * denoiseAmount;
         // Strict delta limit (max ±8) prevents edge halos, ringing, and artificial pores
         const delta = Math.max(-8, Math.min(8, laplacian * weight));
-        data[idx + c] = Math.max(0, Math.min(255, Math.round(center + delta)));
+        data[idx + c] = Math.max(0, Math.min(255, Math.round(denoisedCenter + delta)));
       }
     }
   }
