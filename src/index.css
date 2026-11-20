@@ -66,3 +66,13 @@
 
 .app-shell button[class*="bg-zinc-800"][class*="text-white"] { color: #172554 !important; }
 .app-shell button[class*="bg-zinc-800"] svg { color: #172554; }
+
+
+/* Soft navy-blue glow in the page background; keeps content cards clean and readable. */
+.app-shell {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(ellipse at 0% 0%, rgba(23, 37, 84, 0.13) 0%, transparent 38%),
+    radial-gradient(ellipse at 100% 42%, rgba(30, 58, 138, 0.09) 0%, transparent 42%),
+    linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
+}
