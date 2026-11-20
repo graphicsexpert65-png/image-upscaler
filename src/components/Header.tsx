@@ -37,6 +37,13 @@ export const Header: React.FC<HeaderProps> = ({ device }) => {
 
         <nav aria-label="Main navigation" className="flex items-center gap-3 sm:gap-5 ml-auto">
           <a
+            href="/"
+            aria-current="page"
+            className="whitespace-nowrap text-xs sm:text-sm font-semibold text-blue-900 hover:text-blue-700 underline underline-offset-4"
+          >
+            Home
+          </a>
+          <a
             href="/about-graphics-expert/"
             className="whitespace-nowrap text-xs sm:text-sm font-semibold text-blue-900 hover:text-blue-700 underline underline-offset-4"
           >
