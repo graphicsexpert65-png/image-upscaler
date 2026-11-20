@@ -51,12 +51,8 @@ export function applyEnhancementRefinement(
   strength = 100,
   denoise = 0
 ) {
-  if (mode === 'preserve') {
-    return; // 100% pristine output from the neural network
-  }
-
   const { sharpness } = ENHANCEMENT_MODES[mode];
-  if (sharpness <= 0) return;
+  if (sharpness <= 0 && denoise <= 0) return;
 
   const copy = new Uint8ClampedArray(data);
   const denoiseAmount = Math.max(0, Math.min(40, denoise)) / 100;
