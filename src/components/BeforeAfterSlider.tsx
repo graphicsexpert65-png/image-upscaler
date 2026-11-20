@@ -29,7 +29,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [sliderPos, setSliderPos] = useState<number>(50); // 0 to 100%
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<ViewMode>('slider');
-  const [zoomLevel, setZoomLevel] = useState<number>(1); // 1 = fit, 2 = 2x, 4 = 4x
+  const [zoomLevel, setZoomLevel] = useState<number>(0.85); // fit, 1 = 100%, 2 = 200%, 4 = 400%
   const [flipState, setFlipState] = useState<'original' | 'upscaled'>('upscaled');
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,15 +121,16 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setZoomLevel(1)}
+            onClick={() => setZoomLevel(0.85)}
             className={`px-2 py-1 rounded border text-xs font-medium transition-colors ${
-              zoomLevel === 1
+              zoomLevel === 0.85
                 ? 'border-zinc-700 bg-zinc-800 text-zinc-100'
                 : 'border-zinc-850 bg-zinc-950 text-zinc-400 hover:text-zinc-200'
             }`}
           >
             Fit
           </button>
+          <button type="button" onClick={() => setZoomLevel(1)} className={`px-2 py-1 rounded border text-xs font-medium transition-colors ${zoomLevel === 1 ? 'border-zinc-700 bg-zinc-800 text-zinc-100' : 'border-zinc-850 bg-zinc-950 text-zinc-400 hover:text-zinc-200'}`}>100% Zoom</button>
           <button
             type="button"
             onClick={() => setZoomLevel(2)}
