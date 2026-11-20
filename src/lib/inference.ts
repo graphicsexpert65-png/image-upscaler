@@ -382,7 +382,7 @@ async function runInMainThread(params: {
     const naturalCtx = finalCanvas.getContext('2d');
     if (naturalCtx) {
       const naturalImage = naturalCtx.getImageData(0, 0, targetW, targetH);
-      blendOriginalForNatural2x(
+      blendOriginalForNaturalOutput(
         naturalImage.data, targetW, targetH, srcPixels, workingW, workingH, originalBlendWeight
       );
       naturalCtx.putImageData(naturalImage, 0, 0);
