@@ -71,16 +71,19 @@ export function applyEnhancementRefinement(
       const down = idx + rowStride;
       const left = idx - 4;
       const right = idx + 4;
-      const centerLum = luminance(idx);
-      const lumUp = luminance(up);
-      const lumDown = luminance(down);
-      const lumLeft = luminance(left);
-      const lumRight = luminance(right);
-      const wUp = 1 / (1 + ((Math.abs(centerLum - lumUp) / 20) ** 2));
-      const wDown = 1 / (1 + ((Math.abs(centerLum - lumDown) / 20) ** 2));
-      const wLeft = 1 / (1 + ((Math.abs(centerLum - lumLeft) / 20) ** 2));
-      const wRight = 1 / (1 + ((Math.abs(centerLum - lumRight) / 20) ** 2));
-      const weightSum = wUp + wDown + wLeft + wRight;
+      let wUp = 0, wDown = 0, wLeft = 0, wRight = 0, weightSum = 1;
+      if (denoiseAmount > 0) {
+        const centerLum = luminance(idx);
+        const lumUp = luminance(up);
+        const lumDown = luminance(down);
+        const lumLeft = luminance(left);
+        const lumRight = luminance(right);
+        wUp = 1 / (1 + ((Math.abs(centerLum - lumUp) / 20) ** 2));
+        wDown = 1 / (1 + ((Math.abs(centerLum - lumDown) / 20) ** 2));
+        wLeft = 1 / (1 + ((Math.abs(centerLum - lumLeft) / 20) ** 2));
+        wRight = 1 / (1 + ((Math.abs(centerLum - lumRight) / 20) ** 2));
+        weightSum = wUp + wDown + wLeft + wRight;
+      }
 
       for (let c = 0; c < 3; c++) {
         const center = source[idx + c];
@@ -108,7 +111,7 @@ export function applyEnhancementRefinement(
 /**
  * Adds a restrained amount of source-image information back into Preserve output.
  * This reduces AI-invented facial texture while retaining most super-resolution detail.
- * Only called for 2x + Preserve; other scales and modes remain unchanged.
+ * Called only for Preserve mode; blend strength is scale-dependent in the inference pipeline.
  */
 export function blendOriginalForNaturalOutput(
   output: Uint8ClampedArray,
