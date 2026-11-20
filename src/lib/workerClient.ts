@@ -185,8 +185,8 @@ export function executeJobOnWorker(params: RunWorkerJobParams): Promise<UpscaleR
         }
         stageTimer.set('finalResize', performance.now() - resizeStart);
 
-        // Gently retain original photographic texture at every output scale in Preserve mode.
-        const originalBlendWeight = params.options.scale === 2 ? 0.25 : params.options.scale === 4 ? 0.14 : 0.08;
+        // Use only a light original-image blend: heavy blending softens fine facial texture.
+        const originalBlendWeight = params.options.scale === 2 ? 0.08 : params.options.scale === 4 ? 0.04 : 0.02;
         if (params.options.mode === 'preserve') {
           const naturalCtx = finalCanvas.getContext('2d');
           if (naturalCtx) {
