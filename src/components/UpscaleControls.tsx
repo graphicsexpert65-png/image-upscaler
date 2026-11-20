@@ -14,6 +14,12 @@ interface UpscaleControlsProps {
   onScaleChange: (scale: UpscaleScale) => void;
   mode: EnhancementMode;
   onModeChange: (mode: EnhancementMode) => void;
+  strength: number;
+  onStrengthChange: (value: number) => void;
+  denoise: number;
+  onDenoiseChange: (value: number) => void;
+  faceEnhancement: boolean;
+  onFaceEnhancementChange: (value: boolean) => void;
   originalWidth: number;
   originalHeight: number;
   onStartUpscale: () => void;
@@ -25,6 +31,12 @@ export const UpscaleControls: React.FC<UpscaleControlsProps> = ({
   onScaleChange,
   mode,
   onModeChange,
+  strength,
+  onStrengthChange,
+  denoise,
+  onDenoiseChange,
+  faceEnhancement,
+  onFaceEnhancementChange,
   originalWidth,
   originalHeight,
   onStartUpscale,
@@ -124,7 +136,7 @@ export const UpscaleControls: React.FC<UpscaleControlsProps> = ({
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-sky-400' : 'text-zinc-500'}`} />
-                  <span className="text-xs font-semibold">{config.name}</span>
+                  <span className="text-xs font-semibold">{m === 'preserve' ? 'Natural' : m === 'natural' ? 'Balanced' : 'Detail'}</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
                   {config.description}
@@ -133,6 +145,25 @@ export const UpscaleControls: React.FC<UpscaleControlsProps> = ({
             );
           })}
         </div>
+      </div>
+
+
+      {/* Fine tuning */}
+      <div className="space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-2"><label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Enhancement Strength</label><span className="text-xs text-sky-300 font-mono">{strength}%</span></div>
+          <input aria-label="Enhancement strength" type="range" min="0" max="100" step="5" value={strength} disabled={isProcessing} onChange={(e) => onStrengthChange(Number(e.target.value))} className="w-full accent-sky-500" />
+          <p className="text-[11px] text-zinc-500">Controls additional detail sharpening. Lower values look softer and more natural.</p>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2"><label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Denoise</label><span className="text-xs text-sky-300 font-mono">{denoise}%</span></div>
+          <input aria-label="Denoise strength" type="range" min="0" max="40" step="5" value={denoise} disabled={isProcessing} onChange={(e) => onDenoiseChange(Number(e.target.value))} className="w-full accent-sky-500" />
+          <p className="text-[11px] text-zinc-500">Reduces visible noise gently. Start at 0 and increase only for noisy photos.</p>
+        </div>
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs text-zinc-300">
+          <span><span className="block font-semibold">Face Enhancement</span><span className="text-[11px] text-zinc-500">Optional · face-aware model support is not yet connected</span></span>
+          <input type="checkbox" checked={faceEnhancement} disabled={true} onChange={(e) => onFaceEnhancementChange(e.target.checked)} aria-label="Face enhancement (not yet available)" />
+        </label>
       </div>
 
       {/* 3. Upscale Button */}
