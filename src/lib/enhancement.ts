@@ -81,3 +81,50 @@ export function applyEnhancementRefinement(
     }
   }
 }
+
+/**
+ * Gently blends the original photo back into 2x Preserve output.
+ * This reduces AI-invented facial texture while retaining most super-resolution detail.
+ * Only called for 2x + Preserve; other scales and modes remain unchanged.
+ */
+export function blendOriginalForNatural2x(
+  output: Uint8ClampedArray,
+  outputWidth: number,
+  outputHeight: number,
+  original: Uint8ClampedArray,
+  originalWidth: number,
+  originalHeight: number,
+  originalWeight = 0.25
+) {
+  if (
+    output.length !== outputWidth * outputHeight * 4 ||
+    original.length !== originalWidth * originalHeight * 4 ||
+    outputWidth <= 0 || outputHeight <= 0 || originalWidth <= 0 || originalHeight <= 0
+  ) return;
+
+  const weight = Math.max(0, Math.min(0.35, originalWeight));
+  const aiWeight = 1 - weight;
+  for (let y = 0; y < outputHeight; y++) {
+    const sy = ((y + 0.5) * originalHeight) / outputHeight - 0.5;
+    const y0 = Math.max(0, Math.floor(sy));
+    const y1 = Math.min(originalHeight - 1, y0 + 1);
+    const fy = Math.max(0, sy - y0);
+    for (let x = 0; x < outputWidth; x++) {
+      const sx = ((x + 0.5) * originalWidth) / outputWidth - 0.5;
+      const x0 = Math.max(0, Math.floor(sx));
+      const x1 = Math.min(originalWidth - 1, x0 + 1);
+      const fx = Math.max(0, sx - x0);
+      const outIdx = (y * outputWidth + x) * 4;
+      const p00 = (y0 * originalWidth + x0) * 4;
+      const p10 = (y0 * originalWidth + x1) * 4;
+      const p01 = (y1 * originalWidth + x0) * 4;
+      const p11 = (y1 * originalWidth + x1) * 4;
+      for (let c = 0; c < 3; c++) {
+        const top = original[p00 + c] * (1 - fx) + original[p10 + c] * fx;
+        const bottom = original[p01 + c] * (1 - fx) + original[p11 + c] * fx;
+        const sourceValue = top * (1 - fy) + bottom * fy;
+        output[outIdx + c] = Math.round(output[outIdx + c] * aiWeight + sourceValue * weight);
+      }
+    }
+  }
+}
