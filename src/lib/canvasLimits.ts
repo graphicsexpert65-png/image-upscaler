@@ -36,7 +36,7 @@ export function computeSafeScaleDimensions(
   const reqH = origH * scale;
 
   // Realistic peak memory estimation across the pipeline:
-  // Source buffer (RGBA) + 4x intermediate canvas + target canvas + tile tensors buffer (~48MB)
+  // Source buffer (RGBA) + 4x intermediate canvas + target canvas + runtime/tensor allowance
   const sourceBytes = origW * origH * 4;
   const model4xBytes = (origW * 4) * (origH * 4) * 4;
   const targetBytes = reqW * reqH * 4;
@@ -98,6 +98,6 @@ export function computeSafeScaleDimensions(
     effectiveScale: Number((effW / origW).toFixed(2)),
     estMemoryMb: clampedPeakMb,
     exceedsSafeLimit: true,
-    warningMessage: `This image is too large for ${scale}× processing in your current browser (${estMemoryMb} MB estimated peak RAM). ${recommendation}`,
+    warningMessage: `This image is too large for ${scale}× processing in your current browser (${clampedPeakMb} MB estimated peak RAM after safety cap). ${recommendation}`,
   };
 }
