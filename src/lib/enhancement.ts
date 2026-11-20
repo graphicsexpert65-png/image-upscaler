@@ -17,21 +17,21 @@ export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
   preserve: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Preserve Original',
-    description: 'Natural-looking output with restrained detail recovery, no beautification, and minimal contrast alteration. Preserves natural skin texture, soft lighting, and authentic details.',
+    description: 'Uses the shared Real-ESRGAN model with restrained finishing. Designed to avoid extra sharpening; AI reconstruction can still alter fine skin texture.',
     sharpness: 0.12,
     contrastBalance: 1.0,
   },
   natural: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Natural Detail',
-    description: 'Balanced photographic enhancement. Micro-contrast is kept gentle to preserve authentic facial identity, skin tone, and natural lines without halos or artificial sharpness.',
+    description: 'Same AI reconstruction with a moderate finishing filter for photos. This mode does not use a separate AI model.',
     sharpness: 0.20,
     contrastBalance: 1.0,
   },
   sharp: {
     modelFile: '/models/realesr-general-x4v3.onnx',
     name: 'Sharp Detail',
-    description: 'Clean edge definition for architectural textures, product lines, and typography without cartoon-like or waxy artifacts.',
+    description: 'Same AI reconstruction with stronger edge sharpening for graphics, products, and architecture. Fine halos may appear on some photos.',
     sharpness: 0.32,
     contrastBalance: 1.01,
   },
@@ -55,39 +55,50 @@ export function applyEnhancementRefinement(
   const denoiseAmount = Math.max(0, Math.min(40, denoise)) / 100;
   const sharpenWeight = sharpness * 0.25 * strengthFactor;
   if (sharpenWeight <= 0 && denoiseAmount <= 0) return;
+  if (width < 3 || height < 3 || data.length !== width * height * 4) return;
 
+  // One source snapshot is required so neighbouring pixels are read consistently.
+  // Avoid per-pixel arrays/reduce callbacks: this path can process tens of millions of pixels.
   const source = new Uint8ClampedArray(data);
+  const rowStride = width * 4;
   const luminance = (i: number) =>
     source[i] * 0.2126 + source[i + 1] * 0.7152 + source[i + 2] * 0.0722;
 
   for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = (y * width + x) * 4;
-      const neighbours = [
-        idx - width * 4,
-        idx + width * 4,
-        idx - 4,
-        idx + 4,
-      ];
+    let idx = (y * width + 1) * 4;
+    for (let x = 1; x < width - 1; x++, idx += 4) {
+      const up = idx - rowStride;
+      const down = idx + rowStride;
+      const left = idx - 4;
+      const right = idx + 4;
       const centerLum = luminance(idx);
-      let weightSum = 0;
-      const channelSums = [0, 0, 0];
-
-      for (const n of neighbours) {
-        const difference = Math.abs(centerLum - luminance(n));
-        // Similar-colour neighbours contribute; strong edges are protected.
-        const edgeWeight = 1 / (1 + Math.pow(difference / 20, 2));
-        weightSum += edgeWeight;
-        for (let c = 0; c < 3; c++) channelSums[c] += source[n + c] * edgeWeight;
-      }
+      const lumUp = luminance(up);
+      const lumDown = luminance(down);
+      const lumLeft = luminance(left);
+      const lumRight = luminance(right);
+      const wUp = 1 / (1 + ((Math.abs(centerLum - lumUp) / 20) ** 2));
+      const wDown = 1 / (1 + ((Math.abs(centerLum - lumDown) / 20) ** 2));
+      const wLeft = 1 / (1 + ((Math.abs(centerLum - lumLeft) / 20) ** 2));
+      const wRight = 1 / (1 + ((Math.abs(centerLum - lumRight) / 20) ** 2));
+      const weightSum = wUp + wDown + wLeft + wRight;
 
       for (let c = 0; c < 3; c++) {
         const center = source[idx + c];
-        const guidedAverage = channelSums[c] / Math.max(weightSum, 0.0001);
-        const denoised = center + (guidedAverage - center) * denoiseAmount;
-        const channelLaplacian = 4 * center - neighbours.reduce((sum, n) => sum + source[n + c], 0);
-        const delta = Math.max(-6, Math.min(6, channelLaplacian * sharpenWeight));
-        data[idx + c] = Math.max(0, Math.min(255, Math.round(denoised + delta)));
+        let value = center;
+        if (denoiseAmount > 0) {
+          const average = (
+            source[up + c] * wUp +
+            source[down + c] * wDown +
+            source[left + c] * wLeft +
+            source[right + c] * wRight
+          ) / weightSum;
+          value += (average - center) * denoiseAmount;
+        }
+        if (sharpenWeight > 0) {
+          const laplacian = 4 * center - source[up + c] - source[down + c] - source[left + c] - source[right + c];
+          value += Math.max(-6, Math.min(6, laplacian * sharpenWeight));
+        }
+        data[idx + c] = Math.max(0, Math.min(255, Math.round(value)));
       }
       data[idx + 3] = source[idx + 3];
     }
@@ -95,18 +106,18 @@ export function applyEnhancementRefinement(
 }
 
 /**
- * Gently blends the original photo back into 2x Preserve output.
+ * Adds a restrained amount of source-image information back into Preserve output.
  * This reduces AI-invented facial texture while retaining most super-resolution detail.
  * Only called for 2x + Preserve; other scales and modes remain unchanged.
  */
-export function blendOriginalForNatural2x(
+export function blendOriginalForNaturalOutput(
   output: Uint8ClampedArray,
   outputWidth: number,
   outputHeight: number,
   original: Uint8ClampedArray,
   originalWidth: number,
   originalHeight: number,
-  originalWeight = 0.25
+  originalWeight = 0.04
 ) {
   if (
     output.length !== outputWidth * outputHeight * 4 ||
