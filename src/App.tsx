@@ -19,6 +19,7 @@ import { ResultDetails } from './components/ResultDetails';
 import { DownloadSection } from './components/DownloadSection';
 import { FeedbackSection } from './components/FeedbackSection';
 import { ErrorAlert } from './components/ErrorAlert';
+import { BatchUpscaler } from './components/BatchUpscaler';
 import {
   EnhancementMode,
   ImageInfo,
@@ -158,6 +159,8 @@ export default function App() {
             </div>
           </div>
         </section>
+        <BatchUpscaler />
+
         {/* Error Notification */}
         {error && (
           <ErrorAlert
