@@ -14,6 +14,7 @@ import { ResultDetails } from './components/ResultDetails';
 import { DownloadSection } from './components/DownloadSection';
 import { FeedbackSection } from './components/FeedbackSection';
 import { ErrorAlert } from './components/ErrorAlert';
+import { BatchUpscaler } from './components/BatchUpscaler';
 import {
   EnhancementMode,
   ImageInfo,
@@ -128,6 +129,7 @@ export default function App() {
       <Header device={device} />
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        <BatchUpscaler />
         {/* Error Notification */}
         {error && (
           <ErrorAlert
