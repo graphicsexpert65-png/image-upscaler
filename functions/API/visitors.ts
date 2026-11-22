@@ -9,14 +9,17 @@ async function ensureTable(env: Env) {
     visit_date TEXT NOT NULL, visitor_hash TEXT NOT NULL, PRIMARY KEY (visit_date, visitor_hash)
   )`).run();
 }
-async function getCount(env: Env, day: string) {
-  const row = await env.FEEDBACK_DB.prepare("SELECT COUNT(*) AS count FROM daily_visitors WHERE visit_date = ?")
-    .bind(day).first<{ count: number }>();
-  return Number(row?.count ?? 0);
+async function getCounts(env: Env, day: string) {
+  const [todayRow, totalRow] = await Promise.all([
+    env.FEEDBACK_DB.prepare("SELECT COUNT(*) AS count FROM daily_visitors WHERE visit_date = ?")
+      .bind(day).first<{ count: number }>(),
+    env.FEEDBACK_DB.prepare("SELECT COUNT(*) AS count FROM daily_visitors").first<{ count: number }>(),
+  ]);
+  return { visitors: Number(todayRow?.count ?? 0), totalVisitors: Number(totalRow?.count ?? 0) };
 }
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
-  try { const day = utcDay(); await ensureTable(env); return Response.json({ success: true, date: day, visitors: await getCount(env, day) }); }
-  catch (error) { console.error("Visitor counter GET error:", error); return Response.json({ success: false, visitors: null }, { status: 503 }); }
+  try { const day = utcDay(); await ensureTable(env); return Response.json({ success: true, date: day, ...(await getCounts(env, day)) }); }
+  catch (error) { console.error("Visitor counter GET error:", error); return Response.json({ success: false, visitors: null, totalVisitors: null }, { status: 503 }); }
 };
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
@@ -26,6 +29,6 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const day = utcDay(); await ensureTable(env); const hash = await hashToken(token);
     await env.FEEDBACK_DB.prepare("INSERT OR IGNORE INTO daily_visitors (visit_date, visitor_hash) VALUES (?, ?)")
       .bind(day, hash).run();
-    return Response.json({ success: true, date: day, visitors: await getCount(env, day) });
-  } catch (error) { console.error("Visitor counter POST error:", error); return Response.json({ success: false, visitors: null }, { status: 503 }); }
+    return Response.json({ success: true, date: day, ...(await getCounts(env, day)) });
+  } catch (error) { console.error("Visitor counter POST error:", error); return Response.json({ success: false, visitors: null, totalVisitors: null }, { status: 503 }); }
 };
