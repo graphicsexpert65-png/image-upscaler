@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, ChevronDown } from 'lucide-react';
+import { DailyVisitorCounter } from './DailyVisitorCounter';
 
 const faqs = [
   ['Is this AI image upscaler free?', 'Yes. You can use the online upscaler without paying to process and download enhanced images.'],
@@ -35,7 +36,7 @@ export function Footer() {
         <div className="mt-4 pt-3 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-4"><p className="text-xs font-semibold text-white">AI Image Upscaler</p><a href="/privacy-policy/" className="text-xs text-blue-100 hover:text-white underline underline-offset-4">Privacy Policy</a><a href="/about-graphics-expert/" className="text-xs text-blue-100 hover:text-white underline underline-offset-4">About Graphics Expert</a></div>
           <p className="text-[11px] text-blue-200/65 flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Private browser processing</p>
-          <p className="text-[11px] text-blue-200/50">© {new Date().getFullYear()} AI Image Upscaler</p>
+          <div className="flex flex-col items-center gap-1.5"><DailyVisitorCounter /><p className="text-[11px] text-blue-200/50">© {new Date().getFullYear()} AI Image Upscaler</p></div>
         </div>
       </div>
     </footer>
