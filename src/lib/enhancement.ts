@@ -15,23 +15,23 @@ export interface EnhancementConfig {
 
 export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
   preserve: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/othytenk/realesrgan-x4plus/resolve/b20f332/realesrgan_x4plus.onnx',
     name: 'Preserve Original',
-    description: 'Uses the shared Real-ESRGAN model with restrained finishing. Designed to avoid extra sharpening; AI reconstruction can still alter fine skin texture.',
+    description: 'Uses Real-ESRGAN x4plus (RRDBNet, 23 blocks) for photo-focused 4× reconstruction with restrained finishing.',
     sharpness: 0.12,
     contrastBalance: 1.0,
   },
   natural: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/othytenk/realesrgan-x4plus/resolve/b20f332/realesrgan_x4plus.onnx',
     name: 'Natural Detail',
-    description: 'Same AI reconstruction with a moderate finishing filter for photos. This mode does not use a separate AI model.',
+    description: 'Same Real-ESRGAN x4plus reconstruction with a moderate finishing filter for photos.',
     sharpness: 0.20,
     contrastBalance: 1.0,
   },
   sharp: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/othytenk/realesrgan-x4plus/resolve/b20f332/realesrgan_x4plus.onnx',
     name: 'Sharp Detail',
-    description: 'Same AI reconstruction with stronger edge sharpening for graphics, products, and architecture. Fine halos may appear on some photos.',
+    description: 'Same Real-ESRGAN x4plus reconstruction with stronger edge sharpening for graphics, products, and architecture. Fine halos may appear on some photos.',
     sharpness: 0.32,
     contrastBalance: 1.01,
   },
