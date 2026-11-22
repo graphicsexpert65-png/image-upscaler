@@ -58,11 +58,15 @@ export function determineOptimalTileSize(
     return 512;
   }
 
-  // WASM backend: 256px to 384px maximizes CPU throughput without exceeding memory
+  // WASM/mobile: use smaller tiles to avoid long first-inference stalls on phones.
+  // Smaller first tiles let constrained devices start returning progress sooner.
   if (deviceMemoryGB && deviceMemoryGB >= 8) {
     return 384;
   }
-  return 256;
+  if (deviceMemoryGB && deviceMemoryGB >= 6) {
+    return 192;
+  }
+  return 128;
 }
 
 /**
