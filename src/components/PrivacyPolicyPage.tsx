@@ -54,22 +54,28 @@ export function PrivacyPolicyPage() {
         </section>
 
         <section className="mt-7 space-y-3">
-          <h2 className="text-xl font-bold text-slate-950">4. Cookies and your choices</h2>
+          <h2 className="text-xl font-bold text-slate-950">4. Daily visitor counter</h2>
+          <p className="leading-7">The website displays an approximate daily unique visitor count. A random browser identifier is stored in your browser local storage so repeat visits from the same browser are not counted again that day. The identifier is hashed before it is stored in our database, and only the daily count is displayed publicly. This counter does not access or upload selected images. Clearing local storage or using a different browser/device may cause you to be counted again.</p>
+        </section>
+
+
+        <section className="mt-7 space-y-3">
+          <h2 className="text-xl font-bold text-slate-950">5. Cookies and your choices</h2>
           <p className="leading-7">Graphics Expert does not use an account or login system on this tool. Advertising and analytics partners may use cookies or similar technologies as described in this policy. You can manage or delete cookies through your browser settings. To control Google's personalized advertising, visit <a className="text-blue-700 underline" href="https://adssettings.google.com/" target="_blank" rel="noreferrer">Google Ads Settings</a>. You may also review the privacy choices offered by other advertising providers. Blocking cookies may affect some advertising or website features.</p>
         </section>
 
         <section className="mt-7 space-y-3">
-          <h2 className="text-xl font-bold text-slate-950">5. Children's privacy</h2>
+          <h2 className="text-xl font-bold text-slate-950">6. Children's privacy</h2>
           <p className="leading-7">This website is a general-purpose image utility and is not designed to knowingly collect personal information from children. If you believe a child has provided personal information to us, please contact the website operator so the matter can be reviewed.</p>
         </section>
 
         <section className="mt-7 space-y-3">
-          <h2 className="text-xl font-bold text-slate-950">6. Changes to this policy</h2>
+          <h2 className="text-xl font-bold text-slate-950">7. Changes to this policy</h2>
           <p className="leading-7">We may update this Privacy Policy when the website, its features, or the services used on it change. The latest version and its update date will be published on this page.</p>
         </section>
 
         <section className="mt-7 space-y-3">
-          <h2 className="text-xl font-bold text-slate-950">7. Contact</h2>
+          <h2 className="text-xl font-bold text-slate-950">8. Contact</h2>
           <p className="leading-7">This website is created and maintained by Graphics Expert. If you have a privacy question, you can contact Graphics Expert at <a className="text-blue-700 underline" href="mailto:graphicsexpert65@gmail.com">graphicsexpert65@gmail.com</a>.</p>
         </section>
         <div className="mt-10 pt-6 border-t border-slate-200 flex flex-wrap gap-4 text-sm">
