@@ -13,7 +13,7 @@ if (typeof window !== 'undefined') {
   // Use multithreading if crossOriginIsolated, otherwise 1 thread to prevent errors
   const canMultithread = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
   ort.env.wasm.numThreads = canMultithread
-    ? Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 4) / 2) || 2))
+    ? Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 4) - 1))
     : 1;
   ort.env.wasm.simd = true;
 }

@@ -223,8 +223,8 @@ async function runInMainThread(params: {
     }
   }
 
-  const tileSize = determineOptimalTileSize(workingW, workingH, backend);
-  const pad = 8;
+  const tileSize = determineOptimalTileSize(workingW, workingH, backend, (navigator as any).deviceMemory ?? null);
+  const pad = 16;
   const tiles = generateSeamlessTiles(workingW, workingH, tileSize, pad, modelScale);
   const totalTiles = tiles.length;
 

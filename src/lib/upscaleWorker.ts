@@ -11,7 +11,7 @@ import { generateSeamlessTiles, determineOptimalTileSize } from './tiler';
 ort.env.wasm.wasmPaths = '/wasm/';
 const canMultithread = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
 const threadCount = canMultithread
-  ? Math.max(1, Math.min(4, Math.floor((navigator.hardwareConcurrency || 4) / 2) || 2))
+  ? Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 4) - 1))
   : 1;
 ort.env.wasm.numThreads = threadCount;
 ort.env.wasm.simd = true;
@@ -215,7 +215,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
         cachedBackend,
         data.deviceMemoryGB
       );
-      const pad = 8; // 8px padding is optimal for receptive field without wasting tensor area
+      const pad = 16; // 8px left visible seams (max err ~14/255); 16 removes them at modest cost
       const tiles = generateSeamlessTiles(workingW, workingH, tileSize, pad, modelScale);
       const totalTiles = tiles.length;
 
