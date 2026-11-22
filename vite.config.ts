@@ -4,9 +4,30 @@ import path from 'path';
 import fs from 'fs';
 import {defineConfig} from 'vite';
 
+const ortVersion = JSON.parse(
+  fs.readFileSync(path.resolve(import.meta.dirname, 'node_modules/onnxruntime-web/package.json'), 'utf8')
+).version as string;
+
+// Cloudflare Pages rejects any file over 25 MiB. Vite would otherwise copy the 28 MB
+// WebGPU runtime into dist/assets; at runtime it is loaded from the jsDelivr CDN instead.
+const MAX_PAGES_FILE_BYTES = 25 * 1024 * 1024;
+
 export default defineConfig(() => {
   return {
+    define: {
+      __ORT_VERSION__: JSON.stringify(ortVersion),
+    },
     plugins: [
+      {
+        name: 'drop-oversized-wasm',
+        generateBundle(_opts: unknown, bundle: Record<string, any>) {
+          for (const [name, file] of Object.entries(bundle)) {
+            if (file.type === 'asset' && name.endsWith('.wasm') && file.source.length > MAX_PAGES_FILE_BYTES) {
+              delete bundle[name];
+            }
+          }
+        },
+      },
       {
         name: 'wasm-static-server',
         configureServer(server) {

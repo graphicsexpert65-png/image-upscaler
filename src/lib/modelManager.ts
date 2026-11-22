@@ -18,6 +18,17 @@ if (typeof window !== 'undefined') {
   ort.env.wasm.simd = true;
 }
 
+declare const __ORT_VERSION__: string;
+
+// The WebGPU runtime (.jsep.wasm, ~28 MB) is over Cloudflare Pages' 25 MiB file limit,
+// so only that one file comes from the CDN; the small loader (.mjs) stays same-origin.
+function useCdnWebGpuRuntime() {
+  ort.env.wasm.wasmPaths = {
+    mjs: '/wasm/ort-wasm-simd-threaded.jsep.mjs',
+    wasm: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${__ORT_VERSION__}/dist/ort-wasm-simd-threaded.jsep.wasm`,
+  };
+}
+
 interface CachedSession {
   session: ort.InferenceSession;
   modelPath: string;
@@ -128,6 +139,7 @@ export async function getOrLoadModelSession(
   // 1. Try WebGPU with high-performance provider options
   if (device.hasWebGPU) {
     try {
+      useCdnWebGpuRuntime();
       const session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
         executionProviders: ['webgpu'],
         graphOptimizationLevel: 'all',
@@ -150,6 +162,7 @@ export async function getOrLoadModelSession(
 
   // 2. Try WASM with local files
   try {
+    ort.env.wasm.wasmPaths = '/wasm/';
     const session = await ort.InferenceSession.create(new Uint8Array(modelBuffer), {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
