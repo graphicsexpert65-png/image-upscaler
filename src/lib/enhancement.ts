@@ -15,23 +15,23 @@ export interface EnhancementConfig {
 
 export const ENHANCEMENT_MODES: Record<EnhancementMode, EnhancementConfig> = {
   preserve: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/thisismert/real-esrgan-onnx/resolve/main/onnx/realesr-general-wdn-x4v3.onnx',
     name: 'Preserve Original',
-    description: 'Uses the lightweight Real-ESRGAN General x4v3 model with restrained finishing for general photos.',
+    description: 'Uses the lightweight Real-ESRGAN General WDN x4v3 model with restrained finishing for general photos.',
     sharpness: 0.12,
     contrastBalance: 1.0,
   },
   natural: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/thisismert/real-esrgan-onnx/resolve/main/onnx/realesr-general-wdn-x4v3.onnx',
     name: 'Natural Detail',
-    description: 'Same Real-ESRGAN General x4v3 reconstruction with a moderate finishing filter for photos.',
+    description: 'Same Real-ESRGAN General WDN x4v3 reconstruction with a moderate finishing filter for photos.',
     sharpness: 0.20,
     contrastBalance: 1.0,
   },
   sharp: {
-    modelFile: '/models/realesr-general-x4v3.onnx',
+    modelFile: 'https://huggingface.co/thisismert/real-esrgan-onnx/resolve/main/onnx/realesr-general-wdn-x4v3.onnx',
     name: 'Sharp Detail',
-    description: 'Same Real-ESRGAN General x4v3 reconstruction with stronger edge sharpening for graphics, products, and architecture. Fine halos may appear on some photos.',
+    description: 'Same Real-ESRGAN General WDN x4v3 reconstruction with stronger edge sharpening for graphics, products, and architecture. Fine halos may appear on some photos.',
     sharpness: 0.32,
     contrastBalance: 1.01,
   },
