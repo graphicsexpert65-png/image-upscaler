@@ -19,7 +19,7 @@ interface BatchItem {
 export const BatchUpscaler: React.FC = () => {
   const [items, setItems] = useState<BatchItem[]>([]);
   const [scale, setScale] = useState<UpscaleScale>(4);
-  const [mode, setMode] = useState<EnhancementMode>('preserve');
+  const [mode, setMode] = useState<EnhancementMode>('natural');
   const [running, setRunning] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);

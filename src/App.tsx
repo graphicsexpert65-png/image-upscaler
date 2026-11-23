@@ -30,7 +30,7 @@ export default function App() {
   const [device, setDevice] = useState<DeviceCapabilities | null>(null);
   const [imageInfo, setImageInfo] = useState<ImageInfo | null>(null);
   const [scale, setScale] = useState<UpscaleScale>(4);
-  const [mode, setMode] = useState<EnhancementMode>('preserve');
+  const [mode, setMode] = useState<EnhancementMode>('natural');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<ProgressType | null>(null);
   const [result, setResult] = useState<UpscaleResult | null>(null);

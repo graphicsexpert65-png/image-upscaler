@@ -59,10 +59,11 @@ export function determineOptimalTileSize(
   }
 
   // WASM backend: 256px to 384px maximizes CPU throughput without exceeding memory
+  // Larger tiles = fewer calls and less padding overhead (pad is 16px per side)
   if (deviceMemoryGB && deviceMemoryGB >= 8) {
-    return 384;
+    return 512;
   }
-  return 256;
+  return 384;
 }
 
 /**
